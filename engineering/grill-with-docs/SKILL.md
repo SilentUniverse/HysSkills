@@ -11,7 +11,7 @@ Ask the questions one at a time, waiting for feedback on each question before co
 
 If a question can be answered by exploring the codebase, explore the codebase instead.
 
-**Exception — first pass on a fresh repo:** if `CONTEXT.md` doesn't exist yet, is empty, or holds only `/map-codebase` stubs, don't interrogate term-by-term. Switch to **draft mode** (see below): draft the whole glossary from code in one shot, then present it for a single review. Relentless per-term grilling resumes on later runs, once a baseline exists.
+**Exception — first pass on a fresh repo:** if `CONTEXT.md` doesn't exist yet or is empty, don't interrogate term-by-term. Switch to **draft mode** (see below): draft the whole glossary from code in one shot, then present it for a single review. Relentless per-term grilling resumes on later runs, once a baseline exists.
 
 </what-to-do>
 
@@ -19,26 +19,23 @@ If a question can be answered by exploring the codebase, explore the codebase in
 
 ## First pass (draft mode)
 
-**When:** `CONTEXT.md` is absent, empty, or contains only `/map-codebase` stubs. This is the
+**When:** `CONTEXT.md` is absent or empty. This is the
 "just give me the recommended answers, don't ask me about every term" path for onboarding a
 repo. It trades per-term interrogation for a single review gate — never for zero review.
 
 **Steps:**
 
-1. Explore the code. If `/map-codebase` already ran, read its stubs (they carry the code
-   paths) instead of re-scanning.
+1. Explore the code to identify the domain concepts worth capturing.
 2. Draft the **entire** glossary in one shot, applying your recommended term for every
    concept. Follow [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md). Pick canonical terms, list
    synonyms under `_Avoid_`.
 3. Write it to `CONTEXT.md` (or the relevant per-context file), with each term tagged
    `(draft)`.
-4. Present the **whole draft at once** for the user to edit. One review, not N interruptions.
+4. Present the **whole draft at once** for the user to edit — one review gate, not N
+   interruptions, and never zero review (boundaries / naming are what automation gets wrong).
+   Drop the `(draft)` tags once the user confirms.
 5. **Only** loop back to ask term-by-term where the code contradicts itself or you genuinely
    couldn't decide. List those few explicitly rather than walking the entire glossary.
-
-**Why a review gate stays:** the draft is the agent's best guess, and boundaries / naming are
-exactly what automation gets wrong. The single review keeps wrong guesses out of a long-lived
-document without slowing onboarding. Drop the `(draft)` tags once the user confirms.
 
 Later runs (baseline already exists) use the relentless per-term mode in `<what-to-do>`.
 
