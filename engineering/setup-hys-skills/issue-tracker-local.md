@@ -7,9 +7,10 @@ Issues and PRDs for this repo live as markdown files in `.scratch/`.
 - One feature per directory: `.scratch/<feature-slug>/`
 - The PRD is `.scratch/<feature-slug>/PRD.md`. Newer versions that supersede it are `PRD-v2.md`, `PRD-v3.md`, etc.
 - Implementation issues are `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01`
-- Three states only: `ready-for-agent`, `ready-for-human`, `done` (see `triage-labels.md`)
-- The state lives on a `Status:` line near the top of each issue file
-- Comments and history append to the bottom of the file under a `## Comments` heading
+- Each issue carries YAML frontmatter (`type` / `feature` / `status` / `category` / `blocked_by` / `refines` / `created`); full schema in the `to-issues` / `ship` skills' `ARTIFACT-FORMAT.md`. Three states only: `ready-for-agent`, `ready-for-human`, `done` (see `triage-labels.md`)
+- `done` issues are moved to `.scratch/<feature-slug>/issues/archive/` by `/tidy`; the active working set is the top-level `issues/*.md`
+- `.scratch/INDEX.md` (generated) holds per-feature state counts; `.scratch/<feat>/SUMMARY.md` (generated) is the current-reality view aggregated from `done` issues
+- Comments and history append to the bottom of each issue file under a `## Comments` heading
 
 ## Two hard rules
 
@@ -19,13 +20,12 @@ Issues and PRDs for this repo live as markdown files in `.scratch/`.
 
 ## Quick inspection
 
-```powershell
-sls -Path .scratch\**\issues\*.md -Pattern '^Status: ready-for-agent'
-sls -Path .scratch\**\issues\*.md -Pattern '^Status: ready-for-human'
-sls -Path .scratch\**\issues\*.md -Pattern '^Status: done'
+```bash
+rg '^status: ready-for-agent' -g '**/issues/*.md' .scratch
+rg '^status: ready-for-human' -g '**/issues/*.md' .scratch
 ```
 
-Or in VS Code: Ctrl+Shift+F, regex on, search `^Status: ready-for-agent`.
+The `-g '**/issues/*.md'` glob matches only active top-level issues, not the nested `archive/`. To read one field deterministically (status, blocked_by, refines), use `yq --front-matter=extract '.status' <file>`. For history and counts, read `.scratch/INDEX.md`. In VS Code: Ctrl+Shift+F, regex on, search `^status: ready-for-agent`.
 
 ## When a skill says "publish to the issue tracker"
 

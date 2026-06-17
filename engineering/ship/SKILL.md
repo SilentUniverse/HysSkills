@@ -1,0 +1,193 @@
+---
+name: ship
+description: Orchestrate a feature's ready-for-agent issues to completion. Reads the dependency DAG from frontmatter, topologically sorts, dispatches independent issues to subagents running /tdd (same-module work serialized, cross-module parallelized), enforces a build+test verification gate before each commit, and collects ready-for-human issues into a hands-on checklist. Use when a feature has several ready-for-agent issues and you want them built unattended.
+argument-hint: "Feature slug (optional; omit to pick from INDEX)"
+---
+
+# Ship
+
+The orchestration layer above `/tdd`. `/tdd` builds **one** issue; `/ship` decides **which issues,
+in what order, what can run in parallel, and how the feature wraps up**. It does not write code
+itself — it repeatedly invokes `/tdd` as the execution unit. This is the codified form of the
+"dispatch these N ready-for-agent issues to subagents" move, with fixed scheduling, verification,
+and cleanup rules. All artifacts follow [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md).
+
+> **Boundary: the agent runs the deterministic tail, not the judgment.** `/ship` only touches
+> `ready-for-agent` issues. `grill` / `to-prd` / `to-issues` (deciding direction) and every
+> `ready-for-human` issue (architecture, UX taste, real-device checks) stay with the human.
+
+## Invocation
+
+- `/ship <feat>` — ship that feature.
+- `/ship` — read `.scratch/INDEX.md`, list features with `ready-for-agent` issues, ask which to ship.
+
+## Process
+
+### 1. Build the plan
+
+Read `.scratch/<feat>/issues/*.md` (top level, not `archive/`). Collect every `ready-for-agent`
+issue with its `blocked_by` list. Read frontmatter fields deterministically with `yq` rather than
+eyeballing — e.g. enumerate the DAG with:
+
+```bash
+for f in .scratch/<feat>/issues/*.md; do
+  echo "$f: $(yq --front-matter=extract '.status' "$f") <- $(yq --front-matter=extract '.blocked_by | join(\",\")' "$f")"
+done
+```
+
+Then:
+
+1. **Topologically sort** on `blocked_by`. An issue is runnable only once all its blockers are
+   `done`. If a blocker is itself `ready-for-agent`, it's in this run; if a blocker is
+   `ready-for-human`, the dependent is **deferred** (can't auto-run past a human gate).
+2. **Detect file-level conflicts (critical).** Two issues that will modify the same module can't run
+   in parallel safely — concurrent `/tdd` runs would clobber each other. Infer the touched modules
+   from each issue's `做什么` / `实现决策` (and `CONTEXT.md` code paths if present). Group issues that
+   share a module so they run **serially**; only genuinely disjoint issues run in **parallel**.
+   When in doubt, serialize — a wrong parallelization corrupts work, a wrong serialization only
+   costs time.
+3. Present the wave plan and ask the user to confirm before dispatching:
+
+```
+🚢 Ship 计划：balance
+──────────────────────────────────────────────────────────────
+Wave 1（并行，各自 worktree，模块不相交）:
+  03-mobile-ui.md      (touches src/ui/)
+  04-cache.md          (touches src/cache/)
+  → 并行跑完后串行 merge-back 回主分支
+Wave 2（依赖 Wave 1，从更新后的主分支分叉）:
+  05-balance-api.md    (blocked_by: 04-cache) (touches src/api/, src/cache/ → 与 04 不同 wave)
+延后（卡在人工门后，不自动跑）:
+  06-design-review.md  (ready-for-human)
+──────────────────────────────────────────────────────────────
+确认派发？
+```
+
+### 2. Dispatch each issue through /tdd
+
+Within a wave, spawn one subagent per issue **in parallel, each in its own git worktree** so their
+commits never race on a shared index. Each runs `/tdd <issue-path>` in **autonomous mode** (the
+issue is `ready-for-agent`, so `/tdd` skips confirmation prompts) and commits on its own branch.
+Keep the heavy work — codebase exploration, file reads, the red-green loop — inside the subagent's
+own context; the main loop only collects results.
+
+After a wave's parallel builds finish, **merge the branches back to the main branch serially** (one
+`git merge --no-ff` at a time). The next wave branches from that updated main, so `blocked_by`
+dependencies see the prior wave's work. If a merge conflicts (the plan mis-grouped two issues that
+actually share a module), abort it (`git merge --abort`, leaving main clean) and report that issue
+`failed` — never force a conflicted merge. Worktree subagents must not touch `INDEX.md`; regenerate
+it once after the last wave.
+
+### 3. Verification gate (per issue, before commit)
+
+A subagent may only commit (on its worktree branch) and mark an issue `done` after the project's
+build + relevant tests pass (discover the commands from `docs/agents/domain.md`). On failure:
+
+- Do not commit, do not mark `done`.
+- Return `failed` with a one-line reason. The issue file stays `ready-for-agent` (the worktree is
+  discarded, so nothing leaks into main).
+- Report the failure in the run summary; do not let a red issue block the rest of the wave unless
+  others depend on it.
+
+On success `/tdd` writes the `### 完成` record and flips `status: done` **inside the worktree**; that
+state reaches main only when the branch merges back. `INDEX.md` is regenerated once after the final
+wave (or by `/tidy`), not per issue.
+
+### 4. Auto-tidy when done piles up
+
+After the run, check the feature's `done` count in `INDEX.md`. If it crosses ~8, offer to run
+`/tidy <feat>` (archive done issues, regenerate `SUMMARY.md`, audit tests). Don't force it —
+ask, since test deletion wants a human nod.
+
+### 5. Context guard
+
+If the main orchestration loop's context runs low mid-run, write a `/handoff` for the feature
+(records which waves completed, which issues remain, the `git_base`) before continuing or stopping.
+The next session resumes with `/resume`. This keeps a long ship survivable across sessions.
+
+### 6. Report
+
+Summarize: issues shipped (with commit hashes), issues that failed the gate (with reasons),
+`ready-for-human` issues deferred (the hands-on checklist for the user), and whether a `/tidy` pass
+is recommended.
+
+## Three ways to run ship
+
+Same contract (frontmatter DAG → verification gate → INDEX/SUMMARY), three runtimes. Pick by how
+long the work is and how much you want to watch it.
+
+### A. In-session (this skill) — watch it, interrupt it
+
+`/ship <feat>` runs the Process above in the current conversation. You see every wave, can stop or
+redirect at any point. Best for a handful of issues you want to supervise. Cost: it consumes the
+main context; a big feature can exhaust it mid-run (the Context guard in step 5 catches this).
+
+### B. `/ship-wf` — fan-out orchestration in one background run
+
+For a feature with many issues, run the bundled Workflow script. A `*.js` file under
+`.claude/workflows/` (or `~/.claude/workflows/`) is auto-registered by Claude Code as a **dynamic
+slash command named after its `meta.name`** — so this workflow is invoked directly as `/ship-wf`
+(not `/workflow ship-wf`; there is no such parameterized command). It does the same plan → build →
+tidy loop but in a background orchestration with its own structured agents, so the heavy work never
+touches your main context:
+
+```
+/ship-wf
+```
+
+Pass the feature slug as the workflow arg (the runtime prompts for `args`, or you state it: "run
+ship-wf for feature balance"). Browse live/finished runs with `/workflows` (plural). The script
+lives at `.claude/workflows/ship-wf.js` (source of record:
+`engineering/ship/ship-wf.workflow.js`). Named `ship-wf` to avoid colliding with the `/ship` skill.
+What it does, faithfully to this skill:
+
+- **Plan** — one structured agent lists active issues (`fd … -d 1`, never `archive/`), reads
+  `status` / `blocked_by` with `yq --front-matter=extract`, infers touched modules, and returns
+  dependency-ordered **waves** (issues in one wave touch disjoint modules) plus a `deferred` list
+  (anything gated behind a `ready-for-human` blocker).
+- **Build** — within each wave, one TDD subagent per `ready-for-agent` issue runs **in parallel,
+  each in its own git worktree** (`isolation: 'worktree'`) so there are no git-index races. Each is
+  bound by the hard verification gate: it commits on its own branch + sets `status: done` only if
+  build + tests pass, otherwise returns `failed`. After a wave's parallel builds finish, the
+  orchestrator **merges the branches back to main serially** (one `git merge --no-ff` at a time);
+  the next wave branches from that updated main so `blocked_by` holds. Worktree agents never touch
+  `INDEX.md` — the orchestrator regenerates it once at the end.
+- **Tidy** — if the post-run `done` count ≥ 8, it invokes `/tidy` to archive, regenerate
+  `SUMMARY.md`, and audit tests; otherwise it just refreshes `INDEX.md`.
+
+It returns a structured report (shipped + commits, failed + reasons, deferred, merged branches,
+whether it tidied). Watch live progress with `/workflows`. Iterate by editing
+`.claude/workflows/ship-wf.js` and re-running.
+
+> **Parallelism + correctness.** The heavy TDD work runs truly in parallel (isolated worktrees, no
+> shared index). The only serial step is the fast **merge-back**: branches are collected onto main
+> one at a time, so the collection never races. Disjoint modules shouldn't conflict; if the plan
+> mis-grouped two issues and a merge conflicts, that merge is **aborted** (`git merge --abort`,
+> main left clean) and the issue is reported `failed` rather than corrupting the tree.
+
+### C. `/loop` — self-paced, survives context limits
+
+For an epic that outlasts a single context window, drive ship with the built-in `/loop`. Each
+iteration is a fresh self-wake that picks up where the last left off via the durable state on disk
+(frontmatter `status`, `INDEX.md`), so context never accumulates across iterations:
+
+```
+/loop ship feature <slug> until no ready-for-agent issues remain
+```
+
+Each tick: re-read `INDEX.md` and the feature's issues, run the **next** runnable
+`ready-for-agent` issue through `/tdd` with the verification gate, update state, and either schedule
+the next tick or stop when the active set is empty (only `ready-for-human` / `done` left). Because
+each iteration reads state fresh from disk, a `/loop` run is the most robust against context
+exhaustion — at the cost of being strictly serial and slower to react.
+
+**Which to use:**
+
+| Situation | Use |
+|---|---|
+| A few issues, want to supervise | A — `/ship <feat>` |
+| Many issues, one unattended background run | B — `/ship-wf` |
+| Epic spanning more than one context window | C — `/loop ship …` |
+
+All three honor the same boundary: they only touch `ready-for-agent` issues. Direction (`grill` /
+`to-prd` / `to-issues`) and every `ready-for-human` gate stay with you.

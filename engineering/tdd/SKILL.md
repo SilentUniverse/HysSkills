@@ -1,16 +1,31 @@
 ---
 name: tdd
-description: Test-driven development with red-green-refactor loop. Three invocation forms — `/tdd` lists ready issues to pick from; `/tdd <issue-path>` runs that issue with mode chosen by `Status:`; natural-language ask without an issue falls back to interview-driven flow. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development.
-argument-hint: "Path to an issue file (optional)"
+description: Test-driven development with red-green-refactor loop. Four invocation forms — `/tdd <issue-path>` runs one issue (mode chosen by frontmatter `status:`); bare `/tdd` drains every ready-for-agent issue serially in dependency order; `/tdd <feat>` drains just that feature; a natural-language ask without an issue falls back to interview-driven flow. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development.
+argument-hint: "Issue path, feature slug, or nothing to drain all ready issues"
 ---
 
 # Test-Driven Development
 
 ## Invocation
 
-- `/tdd` — scan `.scratch/**/issues/*.md`, list `ready-for-agent` and `ready-for-human` items, ask which to run.
-- `/tdd <issue-path>` — run that issue. Read its `Status:` first and obey the guard below.
+- `/tdd <issue-path>` — run that one issue. Read its frontmatter `status:` first (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md)) and obey the guard below. Fully visible, one slice.
+- `/tdd` (bare) — **drain mode**: run *every* `ready-for-agent` issue across `.scratch/`, serially, in dependency order, to completion. This is the simple batch path — no worktrees, no parallelism, no tidy, all in the current session so you can watch each one. See "Drain mode" below.
+- `/tdd <feat>` — drain mode scoped to one feature's `issues/` directory.
 - Natural-language ask without an issue (e.g. "write tests for the parser") — fall back to **interview mode** (jump to Workflow §1).
+
+> **`/tdd` drain vs `/ship`.** Both finish the `ready-for-agent` backlog. Use **bare `/tdd`** for a
+> small backlog you want to supervise serially in this session. Use **`/ship`** when you want
+> parallel worktree builds, merge-back, deferred-issue handling, and auto-tidy — i.e. volume or
+> unattended runs. Same issues, same verification gate; drain is the no-ceremony serial version.
+
+### Drain mode (bare `/tdd` or `/tdd <feat>`)
+
+1. Enumerate candidates: bare scans `.scratch/*/issues/*.md` (top level, never `archive/`); `<feat>` scans only `.scratch/<feat>/issues/*.md`. Read each one's `status:` and `blocked_by:` with `yq --front-matter=extract`.
+2. Keep only `status: ready-for-agent`. Order them so every issue runs after its `blocked_by` blockers. Skip (don't fail) any issue still blocked by a `ready-for-human` or unfinished issue — report it as deferred at the end.
+3. Run each, **one at a time**, through the autonomous-mode loop below (§Workflow). Apply the verification gate per issue: commit + `status: done` only if build + tests pass; on failure leave it `ready-for-agent`, note why, and **continue** to the next (a red issue doesn't abort the drain unless others depend on it).
+4. After the last issue, regenerate `.scratch/INDEX.md`. Report: shipped (with commits), failed (with reasons), deferred (still blocked / `ready-for-human`). If a feature's `done` count crossed ~8, suggest `/tidy`.
+
+Drain mode never spawns worktrees or parallel subagents — that's `/ship`'s job. It's deliberately the dumb-but-legible serial path.
 
 ### Status guard (issue-driven invocation)
 
@@ -18,12 +33,12 @@ argument-hint: "Path to an issue file (optional)"
 | ----------------- | --------------------------------------------------------------------------------------------------- |
 | `ready-for-agent` | **Autonomous mode** — skip "confirm with user" prompts. Run the loop unattended.                    |
 | `ready-for-human` | **Interactive mode** — pause at every "confirm with user" point. Before writing the completion record, prompt the user to perform whatever hands-on check makes this slice `ready-for-human` (real-device run, design review, etc). |
-| `done`            | **Refuse.** Print: "this issue is `done`; create a redo issue or set `Status:` back to `ready-for-X` first." Stop. |
+| `done`            | **Refuse.** Print: "this issue is `done`; create a redo issue or set `status:` back to `ready-for-X` first." Stop. |
 | anything else     | Refuse with the same guidance.                                                                      |
 
-Edge case — `Status: ready-for-X` AND `## Comments` already contains a `### 完成` block from a prior run: pause and ask the user "(a) iterate on existing code, or (b) start over?" before proceeding.
+Edge case — `status: ready-for-X` AND `## Comments` already contains a `### 完成` block from a prior run: pause and ask the user "(a) iterate on existing code, or (b) start over?" before proceeding.
 
-Edge case — issue filename matches `*-redo-*` or `*-revert-*` (this is a redo of a previously-done issue): find the original issue (filename with the prefix stripped, e.g. `05-redo-balance-api.md` → look for `02-balance-api.md`). Read its `### 完成` block and list the test files it added. Show the user:
+Edge case — issue `category` is `redo` / `fix` (or filename matches `*-redo-*` / `*-fix-*`): the parent slice is named by the `refines:` frontmatter field (fall back to stripping the prefix, e.g. `05-redo-balance-api.md` → `02-balance-api.md`). Read the parent's `### 完成` block and list the test files it added. Show the user:
 
 > "This redoes `02-balance-api.md`. That issue added these tests:
 > - `tests/test_balance_rest.py` (4 cases)
@@ -40,7 +55,7 @@ For each AC in the issue, search the project's test files for existing coverage.
 
 ## Completion record
 
-When all AC pass — and for `ready-for-human`, hands-on verification is confirmed — set the file's top `Status:` to `done` and append to `## Comments`:
+When all AC pass — and for `ready-for-human`, hands-on verification is confirmed — set the frontmatter `status:` to `done` and append to `## Comments`:
 
 ```markdown
 ### 完成 — YYYY-MM-DD (commit <short-hash>)
@@ -51,7 +66,9 @@ When all AC pass — and for `ready-for-human`, hands-on verification is confirm
 - 备注：<optional one-liner — e.g. real-device check passed on Pixel 6>
 ```
 
-If the run is aborted (test framework broken, environment unfixable), revert `Status:` to its original value and append a brief failure note to `## Comments`.
+Then regenerate `.scratch/INDEX.md` so the feature's state counts reflect the new `done` (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md)). The issue file itself stays in `issues/` — `/tidy` moves it to `issues/archive/` later, not `/tdd`.
+
+If the run is aborted (test framework broken, environment unfixable), revert `status:` to its original value and append a brief failure note to `## Comments`.
 
 ## Philosophy
 

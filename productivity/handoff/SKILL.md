@@ -8,7 +8,26 @@ Write a minimal recoverable snapshot so the next session can continue from the c
 
 ## Where to save
 
-Save to `docs/handoffs/<date>-<topic>.md` in the current repo (e.g. `docs/handoffs/2026-06-12-auth-refactor.md`). Do **not** use the OS temp directory — it gets cleared between sessions. If not inside a git repo, fall back to the working directory root.
+Per the layout in the `ship` / `to-issues` skills' `ARTIFACT-FORMAT.md`:
+
+- **Feature-scoped work** → `.scratch/<feat>/handoff.md` (rolling — overwrite in place each time; git keeps history). Lives next to that feature's PRD and issues so it never gets lost.
+- **Cross-feature work** → `docs/handoffs/<date>-<topic>.md` (e.g. `docs/handoffs/2026-06-12-auth-refactor.md`).
+
+Do **not** use the OS temp directory — it gets cleared between sessions. If not inside a git repo, fall back to the working directory root.
+
+Every handoff carries YAML frontmatter:
+
+```yaml
+---
+type: handoff
+feature: balance      # the feature slug, or null for cross-feature work
+git_base: 3451766     # `git rev-parse --short HEAD` at write time
+status: active        # active when written; /resume flips it to consumed
+date: 2026-06-18
+---
+```
+
+After writing or updating any handoff, rewrite `docs/handoffs/LATEST.md` (a one-line pointer to the most recent handoff) so `/resume` and the user never have to guess which one is current. Format: a `type: handoff-pointer` frontmatter plus a one-line path to the current handoff (see the `ship` / `to-issues` skills' `ARTIFACT-FORMAT.md`).
 
 ## What not to duplicate
 

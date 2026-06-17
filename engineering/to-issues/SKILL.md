@@ -44,12 +44,14 @@ Classify every existing issue into one bucket:
 Classification rules:
 
 - **仍然有效** — the existing issue's behavior is unchanged in the new PRD.
-- **已完工但需返工** — issue is `done` AND the new PRD invalidates the implementation. Hard rule: never edit a `done` issue. Always produce a new `NN-redo-X.md` (or `NN-revert-X.md`, etc.). The old file stays as a historical record.
+- **已完工但需返工** — issue is `done` AND the new PRD invalidates the implementation. Hard rule: never edit a `done` issue. Always produce a new `NN-redo-X.md` (`category: redo`, `refines:` pointing at the original slug). The old file stays as a historical record.
 - **未做且范围变了** — issue is `ready-for-X` AND the new PRD changes its scope or AC. Edit the file in place — there's no `done` history to preserve.
 - **未做但不需要了** — issue is `ready-for-X` AND the new PRD no longer requires it. Delete the file.
 - **全新切片** — nothing existing covers this part of the new PRD.
 
 Let the user confirm the report (item-by-item or yes-all). Then execute: `rm` for deletes, edit for in-place changes, write new files for new + redo. Continue to step 3 to draft the new + redo slices.
+
+**Adding a small detail without a PRD revision.** When the user invokes `/to-issues "在 03-balance-api 上加 X"` to tack a sub-behavior onto an existing slice (rather than re-deriving from a revised PRD), skip the full reconciliation report. Create a single `detail` issue: `category: detail`, `refines: <parent-slug>`, `blocked_by` including the parent if it isn't `done` yet. This is the supported path for incremental detail — it stays traceable to its parent and never silently drifts away from the PRD (痛点 1). `/tidy` later folds these into `SUMMARY.md`.
 
 If no existing issues directory, skip to step 1.
 
@@ -92,14 +94,20 @@ Iterate until the user approves the breakdown.
 
 ### 5. Write issues to `.scratch/<feat>/issues/`
 
-For each approved slice, write a new file `.scratch/<feat>/issues/<NN>-<slug>.md` (next number, kebab-case slug). Use the template below.
+For each approved slice, write a new file `.scratch/<feat>/issues/<NN>-<slug>.md` (next number, kebab-case slug). Frontmatter follows [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md); the body uses the template below.
 
-Write issues in dependency order (blockers first) so you can reference real filenames in the `前置依赖` section.
+Write issues in dependency order (blockers first) so you can reference real filenames in both the `blocked_by` frontmatter field and the `前置依赖` section.
 
 <issue-template>
 
-Status: ready-for-agent
-Category: enhancement
+---
+type: issue
+feature: <feat-slug>
+status: ready-for-agent
+category: enhancement
+blocked_by: []
+created: <ISO date>
+---
 
 ## 上级（Parent）
 
@@ -118,17 +126,25 @@ Avoid specific file paths or code snippets — they go stale fast. Exception: if
 - [ ] 具体、可验证的条目 3
 
 **写 AC 的两条规则：**
-1. **只写本切片新增的行为**。上一切片已提供的能力（schema、已存在的授权、已覆盖的校验）不要重复列出——靠 `前置依赖` 串联。
+1. **只写本切片新增的行为**。上一切片已提供的能力（schema、已存在的授权、已覆盖的校验）不要重复列出——靠 `blocked_by` 串联。
 2. **验收要可独立验证**（“执行 X 后能看到 Y”），不是“应该工作正常”。
 
 ## 前置依赖（Blocked by）
 
-- A reference to the blocking issue file (e.g. `01-init-schema.md`), or "无".
+- A reference to the blocking issue file (e.g. `01-init-schema.md`), or "无". Keep this in sync with the `blocked_by` frontmatter list.
 
 ## Comments
 
 <!-- agent briefs, completion records, post-implementation notes append here. -->
 
 </issue-template>
+
+**Frontmatter field rules** (full schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md)):
+
+- `category` — `enhancement` for a normal PRD slice; `detail` for a small sub-behavior added later that does NOT warrant a PRD revision (MUST also set `refines:`); `redo` / `fix` for re-work of a `done` slice.
+- `blocked_by` — list of sibling slugs (filename without `.md`) that must reach `done` first. `/ship` topologically sorts on this.
+- `refines` — set to the parent slice's slug when `category` is `detail` / `redo` / `fix`. This keeps incremental detail work traceable instead of becoming an orphan issue. Omit for top-level `enhancement` slices.
+
+After writing the issues, regenerate `.scratch/INDEX.md` (see [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md)) so the feature's state counts reflect the new files.
 
 Do NOT modify any parent PRD or upstream issue.

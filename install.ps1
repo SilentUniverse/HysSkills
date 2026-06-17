@@ -174,6 +174,43 @@ foreach ($s in $skills) {
 }
 
 Write-Host ""
+
+# --- Distribute ARTIFACT-FORMAT.md to the skills root so engineering skills' `../ARTIFACT-FORMAT.md`
+#     links resolve. On Windows `..` is normalized textually (it does not traverse the junction),
+#     so `<skills>/ship/../ARTIFACT-FORMAT.md` -> `<skills>/ARTIFACT-FORMAT.md`. Put the file there. ---
+$afSource = Join-Path $root "engineering/ARTIFACT-FORMAT.md"
+if (Test-Path -LiteralPath $afSource) {
+    $afTarget = Join-Path $Target "ARTIFACT-FORMAT.md"
+    if ($DryRun) {
+        Write-Host ("[DryRun] Copy ARTIFACT-FORMAT.md -> {0}" -f $afTarget) -ForegroundColor Yellow
+    }
+    else {
+        Copy-Item -LiteralPath $afSource -Destination $afTarget -Force
+        Write-Host ("Contract: copied ARTIFACT-FORMAT.md -> {0}" -f $afTarget) -ForegroundColor Green
+    }
+}
+
+# --- Distribute workflow scripts to ~/.claude/workflows so `/workflow <name>` resolves globally ---
+$wfSource = Join-Path $root ".claude/workflows"
+if (Test-Path -LiteralPath $wfSource) {
+    $wfTarget = Join-Path (Split-Path $Target -Parent) "workflows"
+    # $Target is ~/.claude/skills by default, so its parent is ~/.claude -> ~/.claude/workflows
+    $wfFiles = Get-ChildItem -LiteralPath $wfSource -Filter "*.js" -File
+    if ($wfFiles) {
+        if ($DryRun) {
+            Write-Host ("[DryRun] Copy {0} workflow script(s) -> {1}" -f $wfFiles.Count, $wfTarget) -ForegroundColor Yellow
+        }
+        else {
+            if (-not (Test-Path -LiteralPath $wfTarget)) { New-Item -ItemType Directory -Path $wfTarget -Force | Out-Null }
+            foreach ($wf in $wfFiles) {
+                Copy-Item -LiteralPath $wf.FullName -Destination (Join-Path $wfTarget $wf.Name) -Force
+            }
+            Write-Host ("Workflows: copied {0} script(s) -> {1}" -f $wfFiles.Count, $wfTarget) -ForegroundColor Green
+            Write-Host "  (workflow scripts are copied, not linked; re-run install after editing them in the repo)" -ForegroundColor DarkGray
+        }
+    }
+}
+
 if ($DryRun) {
     Write-Host "Dry run done. Remove -DryRun to apply." -ForegroundColor Yellow
 }

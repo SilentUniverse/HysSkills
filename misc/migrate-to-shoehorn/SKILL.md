@@ -5,7 +5,7 @@ description: Migrate test files from `as` type assertions to @total-typescript/s
 
 # Migrate to Shoehorn
 
-> Windows default: use PowerShell's `Select-String` instead of `grep -r` (see Workflow step 2). Unix/WSL users can use `grep -r` as usual.
+> Finding `as` assertions is a structural search, not a text search — use `ast-grep` (`sg`), which matches the TypeScript AST and won't false-match `as` in strings or comments. Falls back to `rg` if `ast-grep` isn't installed (see Workflow step 2).
 
 ## Why shoehorn?
 
@@ -113,7 +113,9 @@ getUser(fromAny({ body: { id: 123 } }));
 
 2. **Install and migrate**:
    - [ ] Install: `npm i @total-typescript/shoehorn`
-   - [ ] Find test files with `as` assertions. **Windows / PowerShell:** `Get-ChildItem -Recurse -Include *.test.ts,*.spec.ts | Select-String -Pattern ' as [A-Z]'`. **Unix / WSL:** `grep -r " as [A-Z]" --include="*.test.ts" --include="*.spec.ts"`
+   - [ ] Find `as` assertions in test files (structural, cross-platform):
+     - **ast-grep (preferred):** `sg -p '$EXPR as $TYPE' -l ts` — matches real cast nodes, skips `as` in strings/comments. For double-casts: `sg -p '$EXPR as unknown as $TYPE' -l ts`.
+     - **Fallback (rg):** `rg ' as [A-Z]' -g '*.test.ts' -g '*.spec.ts'`
    - [ ] Replace `as Type` with `fromPartial()`
    - [ ] Replace `as unknown as Type` with `fromAny()`
    - [ ] Add imports from `@total-typescript/shoehorn`
