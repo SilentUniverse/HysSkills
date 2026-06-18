@@ -88,18 +88,19 @@ foreach ($t in 'rg','fd','bat','jq','yq','sg','eza','sd') { "$t -> $((Get-Comman
 全局 `CLAUDE.md` 已加 **`## 7. Modern CLI tooling`** 一节，定下「内置 Grep/Glob/Read 工具优先，落到 shell 才用 rg/fd/bat；frontmatter 用 yq、代码结构用 ast-grep」的分层规则。要点直接复制：
 
 ````markdown
-## 7. Modern CLI tooling
+## 7. Modern CLI tools
 
-Prefer modern tools, but respect the layering — the harness already exposes ripgrep-backed
-`Grep` / `Glob` / `Read` tools with permission integration. Use those for routine search/read;
-drop to a shell tool only when the built-in can't express the need.
+Prefer modern tools, but respect the layering — the harness already exposes ripgrep-backed `Grep` / `Glob` / `Read` tools with built-in permission integration. Use those native tools for routine search and read operations; drop to a shell tool only when the built-in primitives cannot express the required logic.
+- `rg` not `grep` · `fd` not `find` · `bat` not `cat` · `delta` not `git diff` · `eza` not `ls`· `sd` not `sed` 
+- `sg` not `grep` for refactoring · `ctags` not `grep` for symbol lookup
+- `jq` not `awk`/`sed` for JSON · `yq` not hand-editing for YAML(e.g., extracting YAML frontmatter: `yq --front-matter=extract '.status' <file>`).
+- `pnpm` not `npm`
 
-- `grep`/`Select-String` → `rg`（只在内置 Grep 表达不了时，如管道）
-- `find` → `fd`；`cat` → `bat`；`ls` → `eza`；`sed` 替换 → `sd`
-- JSON → `jq`；**YAML frontmatter → `yq --front-matter=extract '.status' <file>`**
-- 找代码结构 → `ast-grep`（`sg`），不是文本匹配
-
-`jq` 只吃 JSON，YAML 必须 `yq`。`rg` 匹配文本行、`ast-grep` 匹配语法树，互补不互替。
+### Tool Selection Logic
+Choose the right tool for the structural depth of the target data:
+* **Text-based:** `rg` matches raw text lines efficiently but lacks syntax awareness.
+* **Syntax-based:** `ast-grep` parses and matches AST nodes (Abstract Syntax Tree), ensuring structurally accurate code queries.
+* **Data-based:** Use `jq` or `yq` strictly based on the serialization format. They complement each other and cannot be used interchangeably.
 ````
 
 ---
