@@ -13,36 +13,19 @@ Matt Pocock 工程方法论的本地化改造，面向 **Claude Code + 单人开
 
 ## 全局配置（一次性，写进 `~/.claude/CLAUDE.md`）
 
-下面整段直接复制到 `~/.claude/CLAUDE.md`（Windows 是 `C:\Users\<你>\.claude\CLAUDE.md`）。所有 skill 都会继承这两节，**因此各 skill 内不再重复语言约定和路径布局**——这是省 context 的关键。
+完整模板就是本仓库根目录的 [`CLAUDE.md`](CLAUDE.md)（7 节：语言约定 / Think Before Coding / Simplicity First / Surgical Changes / Goal-Driven / 文档布局 / CLI 工具链）。直接整份拷到 `~/.claude/CLAUDE.md`（Windows 是 `C:\Users\<你>\.claude\CLAUDE.md`）。所有 skill 都继承这几节，**各 skill 内不再重复语言约定和路径布局**——这是省 context 的关键。
 
-````markdown
-## 1. Think in English, respond in Chinese
+一行拉取（raw 链接，按需替换分支）：
 
-- **Thinking, code, identifiers, file names, search queries:** English
-- **All responses to the user:** Chinese
-- **Written artifacts** (CONTEXT.md, ADR, PRD, `.scratch/` issues, handoffs): Chinese body + English term names. Term names must match code identifiers exactly. Example: `Reconciliation（对账）：指…`
+```powershell
+irm https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/CLAUDE.md | Set-Content "$env:USERPROFILE\.claude\CLAUDE.md"
+```
 
-## 6. Local document layout
+```bash
+curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/CLAUDE.md -o ~/.claude/CLAUDE.md
+```
 
-Standard artifact locations. Skills read/write these paths — do not invent alternatives.
-
-| Artifact | Path | Producer |
-|---|---|---|
-| Domain glossary | `CONTEXT.md` (repo root) | `/grill-with-docs` |
-| Architecture decisions | `docs/adr/NNNN-slug.md` | `/grill-with-docs`, `/improve-codebase-architecture` |
-| Requirements snapshot (PRD) | `.scratch/<feat>/PRD.md` (revisions: `PRD-v2.md`, ...) | `/to-prd` |
-| Implementation tasks | `.scratch/<feat>/issues/NN-slug.md` | `/to-issues` |
-| Session handoffs | `docs/handoffs/<date>-<topic>.md` | `/handoff` |
-| Skill config | `docs/agents/` | `/hys-setup` |
-
-**Immutability rules:**
-
-- An issue with `Status: done` is **immutable** — never edit its body or change its `Status`. The git commit is the source of truth. To revise, create a new redo issue (`NN-redo-<slug>.md`).
-- An ADR superseded by another ADR is **immutable** — never edit its body. Mark it superseded; the new ADR carries the change.
-- Re-running `/to-prd` defaults to writing a new `PRD-vN.md` with a `Supersedes:` header; the older PRD stays untouched. Append-in-place is reserved for purely additive changes the user explicitly asks for.
-````
-
-如果你的 `CLAUDE.md` 还有别的章节（如 "2. Think Before Coding"、"3. Simplicity First" 等），保留即可——这两节按编号插进去就行。
+已有自定义 `CLAUDE.md` 就别整覆盖——只把缺的节按编号补进去即可。
 
 ---
 
