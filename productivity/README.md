@@ -3,6 +3,7 @@
 General workflow tools, not code-specific.
 
 - **[caveman](./caveman/SKILL.md)** — Ultra-compressed communication mode. Cuts token usage ~75% by dropping filler while keeping full technical accuracy.
+- **[grilling](./grilling/SKILL.md)** — The relentless interview engine: walk every branch of the decision tree, one question at a time. Auto-invoked on 'grill' triggers; `grill-me` and `grill-with-docs` are thin wrappers over it.
 - **[grill-me](./grill-me/SKILL.md)** — Get relentlessly interviewed about a plan or design until every branch of the decision tree is resolved.
 - **[handoff](./handoff/SKILL.md)** — Compact the current conversation into a handoff document (with frontmatter + a `LATEST.md` pointer) so another agent can continue the work.
 - **[resume](./resume/SKILL.md)** — The inverse of handoff: find the latest active handoff, verify the git baseline, and continue from its 开机动作序列. One command to pick up a multi-session task.
