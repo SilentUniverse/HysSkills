@@ -4,7 +4,9 @@ Skills I use daily for code work.
 
 - **[diagnose](./diagnose/SKILL.md)** — Disciplined diagnosis loop for hard bugs and performance regressions: reproduce → minimise → hypothesise → instrument → fix → regression-test.
 - **[tidy](./tidy/SKILL.md)** — Garbage-collect a feature: archive `done` issues, regenerate `SUMMARY.md` from completion records, audit zombie/duplicate tests, flag orphan issues. Keeps the working set small as detail work accumulates.
-- **[grill-with-docs](./grill-with-docs/SKILL.md)** — Grilling session that challenges your plan against the existing domain model, sharpens terminology, and updates `CONTEXT.md` and ADRs inline.
+- **[grill-with-docs](./grill-with-docs/SKILL.md)** — A `/grilling` session that also runs `/domain-modeling` to keep `CONTEXT.md` and ADRs current as decisions crystallise.
+- **[domain-modeling](./domain-modeling/SKILL.md)** — Actively build and sharpen the project's domain model: challenge terms against the glossary, write `CONTEXT.md` and ADRs inline. First pass on a fresh repo uses draft mode (one review gate, not term-by-term).
+- **[codebase-design](./codebase-design/SKILL.md)** — Shared vocabulary for designing deep modules (module, interface, depth, seam, adapter, leverage, locality). Consumed by `improve-codebase-architecture` and any skill restructuring code.
 - **[improve-codebase-architecture](./improve-codebase-architecture/SKILL.md)** — Find deepening opportunities in a codebase, informed by the domain language in `CONTEXT.md` and the decisions in `docs/adr/`.
 - **[setup-hys-skills](./setup-hys-skills/SKILL.md)** — （命令名 `/hys-setup`）Scaffold the per-repo config (issue tracker, state vocabulary, domain doc layout) that the other engineering skills consume. 默认本地 markdown tracker。Case 5 迁移把旧 `Status:` 行升级成 frontmatter。
 - **[ship](./ship/SKILL.md)** — Orchestrate a feature's `ready-for-agent` issues to completion: topo-sort the dependency DAG, parallelize disjoint work / serialize same-module work, dispatch each through `/tdd`, enforce a build+test gate, collect `ready-for-human` into a checklist. The layer above `/tdd`.
