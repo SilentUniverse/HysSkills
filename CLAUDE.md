@@ -79,6 +79,9 @@ Standard artifact locations — the lean, always-loaded map. Skills read/write t
 | Implementation tasks | `.scratch/<feat>/issues/NN-slug.md` | `/to-issues` |
 | Session handoffs | `.scratch/<feat>/handoff.md` (feature) / `docs/handoffs/<date>-<topic>.md` (cross-feature) | `/handoff` |
 | Skill config | `docs/agents/` | `/hys-setup` |
+| Throwaway files (repro scripts, debug logs, scratch harnesses) | `.scratch/tmp/` | any skill |
+
+**Temp files** go under `.scratch/tmp/` — never the repo root, the OS temp dir, or an absolute path. Delete them when the task ends (`diagnose` Phase 6 already requires this); they are scratch, not artifacts.
 
 **Session start** — before working, load the project's orientation layer if present: `CODEBASE.md` and `CONTEXT.md` in full (the map is kept tiny — only what the code can't be grepped for; in big repos the root `CODEBASE.md` is just a roster, so read the roster and pull a per-area `src/<area>/CODEBASE.md` only when you work there), and `docs/adr/` **titles only** (pull an ADR body only when you touch the area it governs). Compare each `CODEBASE.md` section's `git_base` against HEAD; treat drifted sections as stale and offer to refresh via `/zoom-out`. Skip silently anything absent — this self-disables in repos that don't use these conventions. If **none** of the three exists yet (a fresh checkout of a repo that's never been oriented), don't keep silent: say so once and offer to build the layer (`/grill-with-docs` for the glossary, `/zoom-out` for the map) — then proceed either way. This load happens every session unconditionally; `/resume` reuses it and layers a handoff on top, it doesn't own it. Per-repo layout (single/multi-context) lives in `docs/agents/domain.md`.
 
