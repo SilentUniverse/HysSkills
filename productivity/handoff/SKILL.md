@@ -47,6 +47,11 @@ Where we are + key artifact paths and their status. One sentence that tells some
 
 ## 2. 基线
 git HEAD (commit hash), working directory cleanliness, key file list relevant to this work.
+If this work changed the **shape** of a module (moved a seam, introduced/removed a landmine, altered
+how things wire up), the `CODEBASE.md` section for that area is now stale — refresh it via `/zoom-out`
+before handing off, or note here that it needs refreshing, so the next session's session-start load
+(which compares each section's `git_base` to HEAD) hands over a map aligned with the code, not one a
+commit behind. Skip this if the work touched no structure — don't run `/zoom-out` for its own sake.
 
 ## 3. 下一步分叉
 Candidate options for the user / next session to decide (A / B / C) with tradeoffs. If the path is already decided, state the next concrete step.
