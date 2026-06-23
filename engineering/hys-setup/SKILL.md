@@ -86,7 +86,7 @@ Assume the user does not know what these terms mean. Each section starts with a 
 
 **Section A — Issue tracker（issue 追踪位置）.**
 
-> Explainer: The "issue tracker" is where issues and PRDs live for this repo. `to-issues`, `triage`, and `to-prd` read from and write to it.
+> Explainer: The "issue tracker" is where issues and PRDs live for this repo. `to-issues` and `to-prd` read from and write to it.
 
 Default and recommended: **local markdown**. These skills run fully offline by default, with no network or account dependencies. Pick this unless the user specifically requests otherwise:
 
