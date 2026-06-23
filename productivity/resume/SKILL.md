@@ -18,13 +18,25 @@ defined in the `ship` / `to-issues` skills' `ARTIFACT-FORMAT.md`.
 
 ## Process
 
+### 0. Orientation is already loaded — don't re-own it
+
+The session-start rule in the global `CLAUDE.md` (§6) loads the orientation layer
+(`CODEBASE.md` + `CONTEXT.md` in full, `docs/adr/` titles, `git_base` drift check) **unconditionally
+at the start of every session** — it does not wait for `/resume`. So by the time you run `/resume`,
+the project context is already in hand. `/resume`'s job is only to *layer a handoff on top*: don't
+re-load or re-explore what orientation already gave you. If for some reason orientation hasn't run
+this session (e.g. the §6 rule isn't present in this repo's setup), run it now per
+`docs/agents/domain.md` before continuing.
+
 ### 1. Locate the handoff
 
 - `/resume <feat>` → read `.scratch/<feat>/handoff.md`.
 - `/resume` (no arg) → read `docs/handoffs/LATEST.md`, follow its pointer. If `LATEST.md` is
   missing, scan `.scratch/*/handoff.md` and `docs/handoffs/*.md` for `status: active` and pick the
   newest by `date` (tie-break on file mtime). If none is `active`, tell the user there's nothing to
-  resume and stop — do not resume a `consumed` handoff without explicit confirmation.
+  resume and stop — do not resume a `consumed` handoff without explicit confirmation. (Step 0 has
+  already run, so even with no handoff the session is oriented — say so rather than leaving the user
+  empty-handed.)
 
 ### 2. Verify the baseline
 

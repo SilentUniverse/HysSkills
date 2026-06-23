@@ -63,22 +63,6 @@ function Get-SkillName {
     return $null
 }
 
-function Get-DuplicatePreference {
-    param(
-        [string]$ExistingPath,
-        [string]$CandidatePath
-    )
-
-    $existingIsHys = $ExistingPath -match "[\\/]setup-hys-skills$"
-    $candidateIsHys = $CandidatePath -match "[\\/]setup-hys-skills$"
-    $existingIsMatt = $ExistingPath -match "[\\/]setup-matt-pocock-skills$"
-    $candidateIsMatt = $CandidatePath -match "[\\/]setup-matt-pocock-skills$"
-
-    if ($candidateIsHys -and $existingIsMatt) { return "candidate" }
-    if ($existingIsHys -and $candidateIsMatt) { return "existing" }
-    return "conflict"
-}
-
 $skillMds = Get-ChildItem -LiteralPath $root -Recurse -Filter "SKILL.md" -File
 if (-not $skillMds) {
     Write-Error "No SKILL.md found under $root. Put install.ps1 at repository root."
@@ -95,20 +79,7 @@ foreach ($md in $skillMds) {
         continue
     }
     if ($seen.ContainsKey($name)) {
-        $existing = $seen[$name]
-        $preference = Get-DuplicatePreference -ExistingPath $existing -CandidatePath $dir
-
-        if ($preference -eq "candidate") {
-            Write-Warning "Duplicate name '$name': prefer $dir, skip $existing"
-            $seen[$name] = $dir
-            continue
-        }
-        if ($preference -eq "existing") {
-            Write-Warning "Duplicate name '$name': keep $existing, skip $dir"
-            continue
-        }
-
-        Write-Error "Duplicate name '$name' in $existing and $dir"
+        Write-Error "Duplicate name '$name' in $($seen[$name]) and $dir"
         exit 1
     }
 

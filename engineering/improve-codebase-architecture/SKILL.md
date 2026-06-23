@@ -63,3 +63,11 @@ Side effects happen inline as decisions crystallize — run the `/domain-modelin
 - **Sharpening a fuzzy term during the conversation?** Update `CONTEXT.md` right there.
 - **User rejects the candidate with a load-bearing reason?** Offer an ADR, framed as: _"Want me to record this as an ADR so future architecture reviews don't re-suggest it?"_ Only offer when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing — skip ephemeral reasons ("not worth it right now") and self-evident ones.
 - **Want to explore alternative interfaces for the deepened module?** Run the `/codebase-design` skill and use its design-it-twice parallel sub-agent pattern.
+
+### 4. Refresh the structural map
+
+A deepening that lands changes the structure `CODEBASE.md` describes — so by definition it goes
+stale. On wrap-up, if a refactor was actually applied (not just discussed), offer to refresh the
+affected `CODEBASE.md` sections via `/zoom-out`: _"This changed the shape of <module> — want me to
+refresh its CODEBASE.md section so the next session sees the new structure?"_ Only the sections you
+touched, not the whole file. Skip the offer if nothing was applied.

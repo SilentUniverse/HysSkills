@@ -98,9 +98,9 @@ pwsh -NoProfile -File install.ps1 -DryRun
 pwsh -NoProfile -File install.ps1
 ```
 
-机制：扫每个 SKILL.md 的 `name` 作为软链接名，建 junction 指向源目录。**目录名保持原样**方便和原版对比；命令名由 `name` 决定。原版同名真实目录会先被备份到 `_backup-<时间戳>/`，绝不直接删。改源文件后链接立即生效。
+机制：扫每个 SKILL.md 的 `name` 作为软链接名，建 junction 指向源目录。改源文件后链接立即生效。同名真实目录会先被备份到 `_backup-<时间戳>/`，绝不直接删。
 
-唯一改名：`setup-hys-skills/` 的 `name` 是 `hys-setup`，所以安装后是 `/hys-setup`。其余 17 个保持原名 → **同名覆盖**原版 Matt Pocock skill。
+目录名与命令名（`name`）现已**全部一致**，安装后命令名即目录名。`hys-setup` 是项目首次接入的引导入口。
 
 ```powershell
 pwsh -NoProfile -File install.ps1 -Target "D:\custom\skills"   # 自定义目标
@@ -234,17 +234,24 @@ rg '^status: ready-for-human' -g '**/issues/*.md' .scratch    # 我亲自做的
 4. `/to-issues` 拆成 `.scratch/<feat>/issues/NN-*.md`，默认 `status: ready-for-agent`（带 frontmatter + 依赖 DAG）
 5. `/ship <feat>` 一次跑完所有 ready-for-agent 的；或 `/tdd <issue-path>` 单跑一条
 
-**第 3 步 — 维护好 `CONTEXT.md`**
+**第 3 步 — 维护好两件套:`CONTEXT.md`(术语) + `CODEBASE.md`(理解)**
 
-每次 `/grill-with-docs` 把决策落进 `CONTEXT.md` 时，**带上代码路径**：
+`CONTEXT.md` 是**纯术语表**——只说概念是什么,一两句话,不带代码路径、不带实现细节(这是它的铁律,守住它才不会烂成四不像的设计文档):
 
 ```markdown
 ## Account（账户）
-持有余额的实体。代码：`src/domain/account.py` 的 `Account` 类。
-不变量：余额非负；冻结状态下禁止 debit。
+持有余额的实体。
+_Avoid_: Wallet, balance-holder
 ```
 
-这一份的回报随项目增大而指数增长——后面 skill 不再从根目录扫代码。
+概念叫什么名字、住在哪个文件,**不往 CONTEXT.md 里存**:名字一致(`Account` 类就叫 `Account`)时 `rg Account` 一下就到,存了反而是会过期的副本。真正 grep 不到的——名字背叛概念(`订单入账` 藏在 `FooBarHandler`)、不变量背后的地雷(冻结状态禁止 debit,否则静默扣款)——归 `CODEBASE.md` 当"坑"记:
+
+```markdown
+## Account <!-- git_base: 7af387c -->
+- **坑**: 余额扣减必须查 frozen 标志,直接 debit 会绕过冻结(`account.py` 里 `_debit` 是私有的,真入口是 `withdraw`)
+```
+
+这两份的回报随项目增大而指数增长——后面 skill 不再从根目录扫代码。
 
 → 之后进入 [持续开发](#持续开发)。
 
@@ -256,17 +263,22 @@ rg '^status: ready-for-human' -g '**/issues/*.md' .scratch    # 我亲自做的
 
 **第 1 步 — 建立代码地图（最高杠杆的投入）**
 
-针对核心 2-3 个模块，逐个跑：
+两件事并行:用 `/grill-with-docs` 建术语表(`CONTEXT.md`),用 `/zoom-out` 建结构地图(`CODEBASE.md`)。
 
 ```
-/grill-with-docs   # 谈这块的术语，写进 CONTEXT.md，每个术语带代码路径
+/grill-with-docs   # 谈所有模块的术语，写进 CONTEXT.md（纯术语表，不带代码路径）
+/zoom-out          # 不给 path = 给整个旧项目建结构地图，自动进 draft 模式
 ```
 
-> **第一遍别被逐条打断**：CONTEXT.md 还空着时，`/grill-with-docs` 自动进 **draft 模式**——一次性起草整份术语表、全用推荐答案、标 `(draft)`，只摆给你**审一次**，不逐个术语问。只有"代码自相矛盾 / 它确实没把握"的少数才回头问你。第二遍起才回到逐条 relentless 模式。
+> **两个都有 draft 模式,首次接入别被逐条打断**：
+> - `CONTEXT.md` 空时,`/grill-with-docs` 一次性起草整份术语表、全用推荐答案、标 `(draft)`,只摆给你**审一次**。
+> - `CODEBASE.md` 空时,`/zoom-out`(无 path)先**确认模块分区** → **并行子 agent 分区探**(各自烧子 agent 的 context,不爆主会话)→ 汇成草稿摆给你**审一次**(合并太碎的、删错的、补漏的)→ 确认才落盘。不是一次性吐全图,也不是零审查。
 
-（想先看懂某块陌生代码、不落盘 → 用 `/zoom-out <path>` 拿"地图视角"，即用即走。）
+> **两个文件不重叠**:`CONTEXT.md` 是**纯术语表**——概念是什么,一两句话,不带代码路径(铁律:glossary and nothing else)。`CODEBASE.md` 只装 `rg`/`glob` 给不了的**操作性理解**:地雷(必须先 `reserve()` 再 `commit()`,否则静默重复计数;或名字背叛概念——`订单入账` 藏在 `FooBarHandler`,rg 概念名找不到)、该从哪个 seam 下手改、跨模块的综合判断(读十个文件才看得出的关系)、中量级 why。**"概念→代码位置" 谁都不存**:名字一致时 grep 一下就到,存了是会过期的副本;名字背叛时它本身就是个坑,进 CODEBASE。判定测试:"新 agent 几条搜索能重建吗?"能就别写。所以每段往往两三行,开机加载极省。
 
-终点是一份 `CONTEXT.md`（多 context 仓库则是多份 + 根目录一张 `CONTEXT-MAP.md` 索引），agent 看一眼就知道哪个概念对应哪个文件，每个 session 只载入相关那一小片。
+（想临时看懂某块陌生代码、不建全图 → `/zoom-out <path>` 指向那块,默认只读;值得长期留再落盘。）
+
+终点是 `CONTEXT.md`(术语) + `CODEBASE.md`(结构理解)两件套——多 context 大仓则各自拆成根索引 + 分区文件,每个 session 只载入相关那一小片。
 
 **第 2 步 — 接入工具链**
 
@@ -356,14 +368,17 @@ A、B 两条线都流到这里。下面按真实场景排，**每节末尾标注
 
 **什么时候不会写：** `/to-prd`、`/to-issues`、`/tdd`、`/ship` 都不写 ADR；可逆、显而易见、或纯属当下偷懒的理由也跳过。
 
-**和 `CONTEXT.md` 的分工（别混）：**
+**三件套的分工（别混）：**
 
 | 文件 | 记什么 | 触发 |
 |---|---|---|
-| `CONTEXT.md` | 术语 / 概念定义（**是什么**） | grill 时术语一确定就**立即**写，不攒着 |
-| `docs/adr/` | 架构决策（**为什么这么选**） | 满足上面三条件时**提议**写 |
+| `CONTEXT.md` | 术语 / 概念定义（**是什么**，纯术语表，不带代码路径） | grill 时术语一确定就**立即**写，不攒着 |
+| `CODEBASE.md` | grep 拿不到的**操作性理解**（地雷、下手处 seam、跨模块综合判断），**不含**概念→位置映射 | `/zoom-out` 探完后按需落盘，按 section 刷新 |
+| `docs/adr/` | 架构硬决策（**为什么这么选**，少数不可逆的） | 满足上面三条件时**提议**写 |
 
 `docs/adr/` 目录懒创建——第一次真要写 ADR 时才建，不会预先生成。**被新 ADR 取代的旧 ADR 不可改**，只标 superseded，新决策由新 ADR 承载（和 issue `done` 不可改同一套规矩）。
+
+> **ADR 本就该稀少**：三条件门槛卡得严，多数项目只有寥寥几条，目录大半时间是空的——这是设计预期，不是漏写。够不上 ADR 的那些"中量级为什么"（够不上不可逆、但读代码会想知道），写进 `CODEBASE.md` 对应模块旁边即可，**别硬凑成 ADR**。`CONTEXT.md` 永远只是术语表，结构不进它。
 
 ### 发现 bug
 
@@ -407,19 +422,22 @@ Claude Code 用 prompt caching：**对话前缀稳定不变的内容不重复算
 1. **保持 CLAUDE.md / SKILL.md 不变** — 这就是为什么全局规则只放 `~/.claude/CLAUDE.md` 一处，各 skill 不重复语言约定。CLAUDE.md 整段进缓存，几乎免费。
 2. **同 session 内别中途插大块陕生内容** — 比如做着 issue 01 中途让 agent 把 `docs/architecture-overview.md` 整篇读一下聊聊——50KB 进 context 后，**之后所有调用的前缀都变长了**。聊大文档另开 session 或用 subagent 隔离。
 3. **不要把 PRD / issue 内容粘贴到对话里** — 让 agent 用 file read 工具读。粘贴会插在对话开头之后，**破坏前缀稳定性**。直接说"读 `.scratch/balance/issues/02-foo.md`" 比把内容复制过来好得多。
-4. **整文件读 > 多次 grep 摸索** — 当你已经知道哪个文件相关时，让 agent 一次读完，比 5 次 grep 更省。**整文件读会进缓存，下次再读几乎免费**；散乱 grep 缓存利用率低且工具调用本身贵。这就是 `CONTEXT.md` 写明代码路径价值最大的地方——它让 agent 跳过 grep 阶段，直接整文件读。
+4. **整文件读 > 多次 grep 摸索** — 当你已经知道哪个文件相关时，让 agent 一次读完，比 5 次 grep 更省。**整文件读会进缓存，下次再读几乎免费**；散乱 grep 缓存利用率低且工具调用本身贵。`CODEBASE.md` 的"坑/下手处"价值最大的地方就在这——它直接告诉 agent 该整文件读哪个 seam，跳过盲目 grep 摸索的阶段。
 
 ### 避免每次都重新扫代码仓
 
-主流程 skill 都有 "explore codebase" 一步。**真正的浪费不是它扫，而是它每次都从零开始扫**。三层解：
+主流程 skill 都有 "explore codebase" 一步。**真正的浪费不是它扫，而是它每次都从零开始扫**。四层解：
 
 | 法子 | 一次投入 | 长期收益 |
 |---|---|---|
-| 写好 `CONTEXT.md`（**带代码路径**） | 跑 `/grill-with-docs` 时附上文件路径 | 之后所有 skill 直接定位文件，省 80% 探索 |
+| 写好 `CONTEXT.md`（纯术语表） | 跑 `/grill-with-docs` 谈术语 | agent 用对概念名，输出/检索不跑偏；配合 CODEBASE 直达代码 |
+| 落盘 `CODEBASE.md`（坑 + 下手处 seam） | `/zoom-out` 探完后选择落盘对应模块 | **新 session 开机自动加载，不再重读代码找位置**；按 section 带 `git_base`，代码漂移了只刷那一块 |
 | PRD 写明涉及模块 | `/to-prd` 时显式说"涉及 `src/services/balance/`" | `/to-issues`、`/tdd` 接力时直接读 PRD 里写好的，不再扫 |
-| `/zoom-out` 临时看懂单模块 | `/zoom-out <path>` 即用即走（只读不落盘） | 快速理解一块陌生代码；要长期保留改用 `/grill-with-docs` 落盘 |
+| `/zoom-out` 临时看懂单模块 | `/zoom-out <path>` 即用即走（默认只读） | 快速理解一块陌生代码；值得长期保留就让它落盘进 `CODEBASE.md` |
 
 最简单的一条：**别说"做一下 X 功能"，直接说"在 `<file>` 实现 X，按 CONTEXT.md 里的 Y 概念扩展"**。给 agent 越具体的入手点，它探索范围越小。
+
+> **开机自动加载**：「会话开机」约定写在你的**全局 `~/.claude/CLAUDE.md` 模板**里（§6 文档布局表下方），每个 session 自动载入——先读 `CODEBASE.md` + `CONTEXT.md` 全文、扫 ADR 标题，并检查 `CODEBASE.md` 的 section 是否相对当前 HEAD 漂移；文件不存在就静默跳过，所以在没用这套约定的仓库里自动失效。`/resume` 复用同一步，再叠 handoff 续接。这才真正兑现"对整个项目的理解跨 session 保留"，而不是绑在某次任务上随 handoff 一起被消费掉。（约定写在全局模板一处，**不**由 `/hys-setup` 往每个仓库重复注入——那会造一堆会漂移的副本；只有 per-repo 的单/多 context 布局留在 `docs/agents/domain.md`。）
 
 ### 两条经验法则
 
@@ -458,7 +476,7 @@ adb logcat -b crash -d                                 # 抓 crash / ANR
 
 | skill | 何时用 |
 |---|---|
-| [hys-setup](engineering/setup-hys-skills/SKILL.md) | 项目首次接入跑一次，配置 issue tracker / 状态 / 文档布局；Case 5 迁移旧文件到 frontmatter |
+| [hys-setup](engineering/hys-setup/SKILL.md) | 项目首次接入跑一次，配置 issue tracker / 状态 / 文档布局；Case 5 迁移旧文件到 frontmatter |
 | [grill-me](productivity/grill-me/SKILL.md) / [grill-with-docs](engineering/grill-with-docs/SKILL.md) | 拷问方案逼出决策。`grill-me` 只拷问不落盘（临时想清楚）；`grill-with-docs` 拷问 + 把术语/决策写进 CONTEXT.md/ADR（要长期留档）。底层同一个 [grilling](productivity/grilling/SKILL.md) 引擎 |
 | [prototype](engineering/prototype/SKILL.md) | 写代码前造一次性原型验证方案（用在 `/to-prd` **之前**） |
 | [to-prd](engineering/to-prd/SKILL.md) | 对话变 PRD（版本化意图快照，重跑默认 supersede） |
@@ -467,7 +485,7 @@ adb logcat -b crash -d                                 # 抓 crash / ANR
 | [tdd](engineering/tdd/SKILL.md) | 跑红绿循环：`<path>` 单条 · 裸跑串行排空所有 ready · `<feat>` 排空单 feature |
 | [tidy](engineering/tidy/SKILL.md) | 垃圾回收：归档 done、重生成 SUMMARY、审计测试 + 孤儿 issue |
 | [diagnose](engineering/diagnose/SKILL.md) | 6 阶段诊断硬 bug |
-| [zoom-out](engineering/zoom-out/SKILL.md) | 不熟的代码请求"地图视角" |
+| [zoom-out](engineering/zoom-out/SKILL.md) | 不熟的代码请求"地图视角"；可落盘进 `CODEBASE.md` 供开机加载 |
 | [improve-codebase-architecture](engineering/improve-codebase-architecture/SKILL.md) | 阶段性回顾找架构深化机会（架构词汇调 [codebase-design](engineering/codebase-design/SKILL.md)） |
 
 > 所有产物的 frontmatter / 索引 / 目录契约见 [ARTIFACT-FORMAT.md](engineering/ARTIFACT-FORMAT.md)。

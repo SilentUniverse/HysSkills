@@ -135,6 +135,8 @@ Never create `AGENTS.md` when `CLAUDE.md` already exists (or vice versa) — alw
 
 If an `## Agent skills` block already exists in the chosen file, update its contents in-place rather than appending a duplicate. Don't overwrite user edits to the surrounding sections.
 
+The session-start orientation convention (load `CODEBASE.md`/`CONTEXT.md`, scan ADR titles, check drift) is **not** written here — it lives once in the global `CLAUDE.md` template (§6 "Local document layout"), which every session loads. Don't inject a per-repo copy; this block only records the three per-repo choices below. The consumer detail still lives in `docs/agents/domain.md`.
+
 The block:
 
 ```markdown
