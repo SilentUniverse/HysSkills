@@ -96,9 +96,10 @@ This issue is status: ready-for-agent — the issue body is the spec. Do NOT ask
 Follow the /tdd skill discipline:
 - Existing-test scan first: for each AC, skip if already covered (note it), else write a test.
 - Vertical tracer bullets: one test -> minimal code -> repeat. Never write all tests then all code.
+- Each red-green cycle runs ONLY the test you just wrote + the touched module's tests (seconds-long loop), NOT the whole suite.
 - Tests verify behavior through public interfaces, not implementation details.
 
-VERIFICATION GATE (hard): discover build + test commands from docs/agents/domain.md (infer from project config if absent). Run them. You may commit ONLY if build + relevant tests pass.
+VERIFICATION GATE (hard): commands are cached in docs/agents/domain.md (infer from project config if absent, then write them back). Run build + the touched modules' tests — scoped, NOT the whole suite (the orchestrator runs the full suite once after merge-back). You may commit ONLY if they pass.
 - On pass: in THIS worktree, commit the code + tests + the issue file with frontmatter status: done and a "### 完成 — <date> (commit <hash>)" record appended to ## Comments (test files + case counts). Then report your branch (\`git branch --show-current\`) and short hash (\`git rev-parse --short HEAD\`). Return result "done".
 - On fail: do NOT commit. Return result "failed" with a short reason. Leave branch/commit empty.
 
@@ -123,6 +124,10 @@ const MERGE_SCHEMA = {
       },
       description: 'branches that hit a merge conflict and were aborted, leaving main clean',
     },
+    suiteFailure: {
+      type: 'string',
+      description: 'one line if the full suite/build failed on main after merge-back (cross-module regression the scoped gates missed); empty if green',
+    },
   },
 }
 
@@ -136,7 +141,9 @@ ${toMerge.map((b) => `  - branch ${b.branch}  (issue ${b.file}, commit ${b.commi
 
 For each branch in order: \`git merge --no-ff <branch>\`. If it merges cleanly, keep it and move on. If it CONFLICTS, run \`git merge --abort\` immediately (leave the working tree clean), record it under conflicted with the conflicting file/reason, and continue with the next branch. Never force a conflicted merge. Do not touch .scratch/INDEX.md.
 
-Return which branches merged and which conflicted.`,
+After all merges, run the full suite + build once against main (commands cached in docs/agents/domain.md) to catch cross-module regressions the scoped per-issue gates missed. If it fails, set suiteFailure to a one-line reason; if green, leave it empty. Do not revert the merges.
+
+Return which branches merged, which conflicted, and any suite failure.`,
     { schema: MERGE_SCHEMA, phase: 'Build', label: `merge-back wave ${waveNo}` },
   )
 

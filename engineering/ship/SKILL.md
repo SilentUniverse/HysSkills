@@ -75,13 +75,17 @@ After a wave's parallel builds finish, **merge the branches back to the main bra
 `git merge --no-ff` at a time). The next wave branches from that updated main, so `blocked_by`
 dependencies see the prior wave's work. If a merge conflicts (the plan mis-grouped two issues that
 actually share a module), abort it (`git merge --abort`, leaving main clean) and report that issue
-`failed` — never force a conflicted merge. Worktree subagents must not touch `INDEX.md`; regenerate
+`failed` — never force a conflicted merge. After the wave's branches are all merged, run the **full
+suite + build** once against the updated main to catch cross-module regressions the scoped per-issue
+gates missed; report any failure. Worktree subagents must not touch `INDEX.md`; regenerate
 it once after the last wave.
 
 ### 3. Verification gate (per issue, before commit)
 
-A subagent may only commit (on its worktree branch) and mark an issue `done` after the project's
-build + relevant tests pass (discover the commands from `docs/agents/domain.md`). On failure:
+A subagent may only commit (on its worktree branch) and mark an issue `done` after build + the
+touched modules' tests pass (commands cached in `docs/agents/domain.md`). The per-issue gate is
+**scoped** — not the whole suite; the full suite runs once after merge-back (step 2), not N times in
+parallel. On failure:
 
 - Do not commit, do not mark `done`.
 - Return `failed` with a one-line reason. The issue file stays `ready-for-agent` (the worktree is
