@@ -19,7 +19,7 @@ Before writing anything, scan `.scratch/` for related work:
 4. Ask the user which path applies, presenting three options. **Default is (b) supersede** — a deliberate `/to-prd` re-run is a strong signal that the plan has changed.
 
 - **(a) New feature** — unrelated to anything found. Create a new directory `.scratch/<feature-slug>/PRD.md`.
-- **(b) Supersede [DEFAULT when an existing PRD matches]** — create `.scratch/<existing-feat>/PRD-vN.md` (next number) with a `Supersedes:` header pointing at the previous version, plus a one-paragraph `取代理由` block. The old file stays untouched. The skills always read the highest-numbered non-superseded `PRD*.md` in the directory.
+- **(b) Supersede [DEFAULT when an existing PRD matches]** — create `.scratch/<existing-feat>/PRD-vN.md` (next number) with the `supersedes:` frontmatter field pointing at the previous version, plus a one-paragraph `取代理由` block. The old file stays untouched. The skills always read the highest-numbered non-superseded `PRD*.md` in the directory.
 - **(c) Append revision** — only when the user explicitly asks for "add to existing PRD" and the change is purely additive (new user stories, tighter AC) without invalidating any earlier paragraph. Append a dated entry to `## 修订` at the bottom of the existing PRD. If you find yourself wanting to change an older paragraph, stop — it's a supersede.
 
 If no hits, skip to step 1 with option (a).
