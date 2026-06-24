@@ -124,6 +124,7 @@ pwsh -NoProfile -File install.ps1 -Force                       # 跳过备份直
    ┌──────────────────────────────────────────────────────────────┐
    │ /to-issues                 .scratch/<feat>/issues/NN-*.md     │
    │  ├─ 默认 status: ready-for-agent，带 frontmatter + 依赖 DAG   │
+   │  ├─ 碰已有代码先做影响面探测：爆炸半径 + 回归风险报告         │
    │  ├─ 重跑时给"对账报告"：留 / 改 / redo / 删 / 新增            │
    │  └─ 加细节：/to-issues "在 NN 上加 X" → detail 类，refines 指回 │
    └────────────────────────────┬─────────────────────────────────┘
@@ -325,14 +326,21 @@ A、B 两条线都流到这里。下面按真实场景排，**每节末尾标注
 
 ### 新需求来了
 
-1. **方案够清楚吗？** 不清楚 → 拷问；清楚 → 直奔 `/to-prd`
-   - `/grill-me` —— 只拷问，不落盘。临时捋顺思路、一次性决策用。
-   - `/grill-with-docs` —— 同样的拷问，**外加**把术语写进 `CONTEXT.md`、架构决策写进 `docs/adr/`。结论要长期留档时用。
-   - 口诀：**聊完三天后还需要有人知道"为什么这么定"→ `grill-with-docs`；只是当下想清楚 → `grill-me`**。两者拷问过程完全一样（同一个 `grilling` 引擎），只差落不落盘。
-2. **设计点不确定？** → `/prototype` 验证完再写 PRD
-3. `/to-prd` 写 PRD（重跑会先扫匹配的旧 PRD，三选项让你确认）
-4. `/to-issues` 拆 issue（自动带 frontmatter + 依赖 DAG）
-5. `/ship <feat>` 一次跑完 ready-for-agent 的；或 `/tdd <issue-path>` 单跑一条
+`grill → to-prd → to-issues → tdd` 这条全长链**不是必经管道**——它只对应"全新 + 领域还没想清楚的大功能"。**先问"有什么不确定?"，按不确定性分流，多数情况能跳过前几步：**
+
+| 不确定的是什么 | 走哪步 | 别做什么 |
+|---|---|---|
+| 领域概念 / 术语没定 | `/grill-with-docs`（落盘）或 `/grill-me`（不落盘） | —— |
+| 怎么设计才塞得进去（有真权衡） | `/prototype` 验证完再继续 | 别 grill 领域——你已经懂领域，纠结的是实现 |
+| 这改动会碰到/弄坏哪些现有行为 | 直接 `/to-issues`，它**先廉价探一道、按爆炸半径缩放**（小则一行带过，真耦合才出报告；见[修改已有需求](#修改已有需求)） | 别靠 PRD——它照不到影响面 |
+| 啥都清楚，只是要拆成可执行单元 | 直接 `/to-issues`（碰到 `done` 的自动触发对账） | 别为它新开 PRD |
+| 只给某一个切片加子行为 | `/to-issues "在 NN 上加 X"` → `detail` issue | 别走完整流程 |
+
+- **`/grill-me` vs `/grill-with-docs`**：二选一不是两步。同一个 grilling 引擎，只差落不落盘。口诀：**聊完三天后还要有人知道"为什么这么定" → `grill-with-docs`；只是当下想清楚 → `grill-me`**。
+- **`/to-prd` 何时才需要**：它是版本化的*意图快照*，**只在意图真的变了时才写**。在已懂的领域里加东西、意图没变，直接 `/to-issues` 是正路，不是抄近道。
+- 拆完 → `/ship <feat>` 一次跑完 ready-for-agent 的；或 `/tdd <issue-path>` 单跑一条。
+
+> **防漏靠的不是 PRD**：担心"小功能直接 to-issues 会漏"——救你的是 to-issues 第 4 步的切片清单 quiz（粒度对吗/依赖对吗）和 AC 纪律，不是那份 PRD。耦合改动真正会漏的是*影响面*，那由下面的影响面探测兜，PRD 同样照不到。
 
 > **省 token tip**：讨论方案不要在主对话框来回——上下文会爆。要么走 grill 系列拷问（结构化），要么写进 ADR（持久化）。三天后回头看，主对话框的讨论已经被 compact 没了，ADR 还在。
 
@@ -340,7 +348,21 @@ A、B 两条线都流到这里。下面按真实场景排，**每节末尾标注
 
 ### 修改已有需求
 
-第一步永远先问：**老 issue 的 status 是 ready 还是 done？**
+两种改动姿势，先认清你在哪种：
+
+**A. 深化 / 扩展已有功能（耦合重）——最容易卡的一种。** 别纠结"算新功能还是旧功能深化"——那条轴没用，你永远站中间。换个轴：**认了"它碰已有代码"，于是拆切片前先廉价探一道、按爆炸半径缩放响应**。直接 `/to-issues "给订单加部分退款"`，它内部先做这步**影响面探测**：
+
+- **一道廉价探测当总闸**：从你这句话 + `CONTEXT.md` 锚定符号（订单/退款/余额），`rg`/`ast-grep` 一下有多少现有引用。按半径分三档，**小改动一眼带过、不被拖慢**：
+  - 零引用 = 真新增 → 直接拆。
+  - 几处引用、单模块、无已知地雷 = 小半径 → 一行记一下（"碰 `Order.total`，2 个调用方，无地雷"）就拆，**不出报告、不开 subagent**。
+  - 多处 / 跨模块 / 命中已知地雷区 = 真耦合 → 才出下面那份完整报告。拿不准就往大了算（漏耦合是回归，多看一眼很便宜）。
+- **真耦合才出影响面报告**给你过目：受影响模块、可能回归的现有行为、**哪些既有测试的预期要改**（耦合改动常常是*改*某个既有测试，不只是加新测试）。
+- 探出 grep 看不见的地雷（"对账处假设金额恒正"这种）→ 它会问要不要**落盘进 `CODEBASE.md`**。落了之后下次再碰这块开机自动加载、不用重推——**同一区域耦合改动做得越多，后续探测越省**。
+- 你**只敲一次** `/to-issues`，探测是它内部的一步，不用先手动 `/zoom-out` 再来拆。
+
+> **静态查得准不准看语言**：强类型（TS）靠类型检查器，影响面查得近乎完整；动态语言（Python）静态查不全，得叠运行时手段，报告会标"动态部分可能有遗漏"。按语言特化的具体命令见 [`engineering/to-issues/impact-detection.md`](engineering/to-issues/impact-detection.md)，并固化进项目 `docs/agents/domain.md`。
+
+**B. 改的是已写下的 issue 本身。** 第一步永远先问：**老 issue 的 status 是 ready 还是 done？**
 
 | 状态 | 怎么改 |
 |---|---|
@@ -439,8 +461,8 @@ Claude Code 用 prompt caching：**对话前缀稳定不变的内容不重复算
 
 ### 两条经验法则
 
-- **新需求第一步永远问"方案够清楚吗"**。不清楚走 grill 系列；清楚就直奔 `/to-prd`。
-- **改需求第一步永远问"老 issue 是 ready 还是 done"**。ready 直接编辑；done 必须新建 redo，永不修改原文件。
+- **新需求第一步永远问"有什么不确定"**，而不是默认走全长链。领域不清 → grill；设计不清 → prototype；影响面不清 → 直接 `/to-issues`（它自动探）；都清楚 → 直奔 `/to-issues`。`/to-prd` 只在意图真的变了时才写。
+- **改需求先认清姿势**：扩展/深化已有功能（耦合重）→ 直接 `/to-issues`，让它先做影响面探测；改已写下的 issue → 先问"ready 还是 done"，ready 直接编辑，done 必须新建 redo，永不修改原文件。
 
 ---
 
@@ -478,7 +500,7 @@ adb logcat -b crash -d                                 # 抓 crash / ANR
 | [grill-me](productivity/grill-me/SKILL.md) / [grill-with-docs](engineering/grill-with-docs/SKILL.md) | 拷问方案逼出决策。`grill-me` 只拷问不落盘（临时想清楚）；`grill-with-docs` 拷问 + 把术语/决策写进 CONTEXT.md/ADR（要长期留档）。底层同一个 [grilling](productivity/grilling/SKILL.md) 引擎 |
 | [prototype](engineering/prototype/SKILL.md) | 写代码前造一次性原型验证方案（用在 `/to-prd` **之前**） |
 | [to-prd](engineering/to-prd/SKILL.md) | 对话变 PRD（版本化意图快照，重跑默认 supersede） |
-| [to-issues](engineering/to-issues/SKILL.md) | PRD 拆 issue（frontmatter + 依赖 DAG，重跑给对账报告，支持 detail 子切片） |
+| [to-issues](engineering/to-issues/SKILL.md) | 拆 issue（frontmatter + 依赖 DAG，重跑给对账报告，支持 detail 子切片）；碰已有代码先做影响面探测（[impact-detection.md](engineering/to-issues/impact-detection.md)） |
 | [ship](engineering/ship/SKILL.md) | 编排一个 feature 的 ready-for-agent issue 跑完（拓扑排序 + 验证门，tdd 之上的一层） |
 | [tdd](engineering/tdd/SKILL.md) | 跑红绿循环：`<path>` 单条 · 裸跑串行排空所有 ready · `<feat>` 排空单 feature |
 | [tidy](engineering/tidy/SKILL.md) | 垃圾回收：归档 done、重生成 SUMMARY、审计测试 + 孤儿 issue |
