@@ -105,9 +105,16 @@ ask, since test deletion wants a human nod.
 
 ### 5. Context guard
 
-If the main orchestration loop's context runs low mid-run, write a `/handoff` for the feature
-(records which waves completed, which issues remain, the `git_base`) before continuing or stopping.
-The next session resumes with `/resume`. This keeps a long ship survivable across sessions.
+A wave boundary is the natural checkpoint: the wave's branches are merged, `status: done` and
+`INDEX.md` are on disk, so a clean break loses nothing. **Don't wait to "feel" context running low**
+— a model judges its own remaining context poorly, and an in-session `/ship` accumulates every
+wave's exploration and red-green output in the main loop, so a multi-wave feature can exhaust it
+before the signal ever fires. Instead, decide structurally at each wave boundary: if more than a
+wave or two of work remains, write a `/handoff` for the feature (it records which waves completed,
+which issues remain, and the `git_base`) and stop; the next session continues with `/resume`. If
+you find yourself reaching this guard repeatedly for one feature, that feature was too big for
+in-session `/ship` — rerun it as `/ship-wf` (runtime B), which keeps the heavy work out of the main
+context entirely.
 
 ### 6. Report
 
@@ -123,8 +130,10 @@ long the work is and how much you want to watch it.
 ### A. In-session (this skill) — watch it, interrupt it
 
 `/ship <feat>` runs the Process above in the current conversation. You see every wave, can stop or
-redirect at any point. Best for a handful of issues you want to supervise. Cost: it consumes the
-main context; a big feature can exhaust it mid-run (the Context guard in step 5 catches this).
+redirect at any point. **Use it only for a handful of issues (roughly one or two waves) you want to
+supervise** — it runs in the main context, so every wave's exploration and red-green output
+accumulates there. Beyond that, don't lean on the step-5 guard to save you mid-run; reach for
+`/ship-wf` (B) from the start, which keeps the heavy work out of the main context.
 
 ### B. `/ship-wf` — fan-out orchestration in one background run
 
