@@ -192,7 +192,7 @@ rg '^status: ready-for-human' -g '**/issues/*.md' .scratch    # 我亲自做的
 |---|---|---|---|
 | 单条手动 | `/tdd <issue-path>` | 跑指定一条，全程可见 | 想盯着做某一条 |
 | 串行排空 | `/tdd`（裸跑）/ `/tdd <feat>` | 按依赖顺序**串行**跑完所有 ready，无 worktree、无并行、无 tidy | 少量收尾，想在本会话逐条看着排空 |
-| 会话内编排 | `/ship <feat>` | 分波、**各自 worktree 并行**、串行 merge-back、自动 tidy | 量大或想要并行，但仍想盯着、随时打断 |
+| 会话内编排 | `/ship <feat>` | 分波、**各自 worktree 并行**、串行 merge-back、自动 tidy | 一两个 wave 的量、想盯着、随时打断；再大就上 `/ship-wf`（占主 context） |
 | 后台编排 | `/ship-wf` | 同 `/ship`，后台 workflow、结构化 agent、不占主 context | 一次无人值守把一个 feature 跑完 |
 | 跨 context 自驱 | `/loop ship` | 每轮自唤醒、读盘续命，串行但抗 context 爆 | 跨多个 context 窗口的大 epic |
 
