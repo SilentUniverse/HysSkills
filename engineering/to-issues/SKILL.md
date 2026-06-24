@@ -1,6 +1,6 @@
 ---
 name: to-issues
-description: Break a plan, spec, or PRD into independently-grabbable issues using vertical slices. When a PRD is being re-run after revision, produces a reconciliation report against existing issues (kept / redo / edit / delete / new). Use when the user wants to convert a plan into issues or re-derive issues after a PRD revision.
+description: Break a plan, spec, or PRD into independently-grabbable issues using vertical slices. For a change that touches existing code, first runs an impact-detection pass (blast radius + regression risk) before slicing. When a PRD is re-run after revision, produces a reconciliation report against existing issues (kept / redo / edit / delete / new). Use to convert a plan into issues, to extend/deepen an existing feature, or to re-derive issues after a PRD revision.
 ---
 
 # To Issues
@@ -59,11 +59,38 @@ If no existing issues directory, skip to step 1.
 
 Work from the latest non-superseded `PRD*.md` in the feature directory. If the user passes an explicit issue path or PRD path as an argument, use that.
 
-### 2. Explore the codebase (optional)
+### 2. Detect impact (coupling check — before slicing)
 
-If you have not already explored the codebase, do so to understand the current state of the code. Issue titles and descriptions should use the project's domain glossary vocabulary, and respect ADRs in the area you're touching.
+**One cheap probe gates this whole step; scale the response to the blast radius it reveals.** Don't
+guess whether a change is "big" or "coupled" — measure it. Anchor the symbols the request names
+(`CONTEXT.md` vocabulary — Order, Refund, Balance) and `rg` / `ast-grep` for references:
 
-If the PRD touches several disjoint modules, **dispatch one Explore subagent per module in parallel** rather than reading everything inline — each returns just the seams and current shape its slices need, so the heavy reading burns subagent context instead of this session's. (Skip the fan-out for a single-module feature, or when `CODEBASE.md` already gives you the map.)
+| Probe result | Do this |
+|---|---|
+| **No references** — genuinely new | Skip to step 3 and slice. |
+| **A few references, one module, no known 坑** — small blast radius | Note it in one line ("touches `Order.total`, 2 callers, no landmine") and slice. **No report, no subagent** — a tiny change finishes here. |
+| **Many references / multiple modules / a known-landmine area** — real coupling | Produce the impact report below before slicing. |
+
+When unsure which tier, round **up** — a missed coupling is a regression; an extra glance is cheap.
+
+**Impact report** (only the third tier). It's to slicing what the reconciliation report is to a
+re-run — a checkpoint you show the user, not a silent decision:
+
+1. **Static reachability** — callers/importers of the anchored symbols, and which existing tests
+   cover them. Machine-determinable — query it, don't eyeball it. Per-language commands + their
+   confidence: [impact-detection.md](./impact-detection.md) (also in `docs/agents/domain.md`).
+2. **Semantic coupling** — behaviour the change might break that no import edge shows (invariants
+   like "amount ≥ 0", ordering constraints). Start from `CODEBASE.md` 坑 if any. Beyond one module,
+   **dispatch one Explore subagent per affected area in parallel** so the reading burns subagent
+   context, not this session's.
+3. **Existing tests whose expectations this change alters** — coupled changes often *edit* a test's
+   expectation, not just add tests; flag those so the slices carry the right AC.
+4. If a grep-invisible landmine surfaced, **offer to persist it to `CODEBASE.md`** — the next
+   coupled change here then reuses it instead of re-deriving it (so an area gets cheaper to touch
+   the more you work it).
+
+Use the domain glossary; respect ADRs in the area. On a dynamic language (Python, untyped JS) static
+results are a floor, not the ceiling — say so rather than implying the impact list is complete.
 
 ### 3. Draft vertical slices
 
