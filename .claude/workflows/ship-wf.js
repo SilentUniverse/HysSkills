@@ -150,10 +150,14 @@ Return which branches merged, which conflicted, and any suite failure.`,
 const built = []
 const mergedOk = []
 const mergeFailed = []
+const waveStats = []
+const tokensAtStart = budget.spent()
 // Each wave: parallel build in isolated worktrees, then SERIAL merge-back before the next wave —
 // so wave N+1's worktrees branch from a main that already contains wave N's work (blocked_by holds).
 for (let i = 0; i < plan.waves.length; i++) {
   const wave = plan.waves[i]
+  const waveStart = Date.now()
+  const tokensBefore = budget.spent()
   log(`Wave ${i + 1}/${plan.waves.length}: building ${wave.map((w) => w.file).join(', ')} in parallel`)
   const results = (await parallel(wave.map((issue) => () => buildIssue(issue, i + 1)))).filter(Boolean)
   built.push(...results)
@@ -165,6 +169,12 @@ for (let i = 0; i < plan.waves.length; i++) {
     mergedOk.push(...(m?.merged ?? []))
     mergeFailed.push(...(m?.conflicted ?? []))
   }
+  waveStats.push({
+    wave: i + 1,
+    issues: wave.length,
+    seconds: Math.round((Date.now() - waveStart) / 1000),
+    tokens: budget.spent() - tokensBefore,
+  })
 }
 
 const conflictedFiles = new Set(mergeFailed.map((c) => c.file))
@@ -199,6 +209,27 @@ if (doneAfter >= 8) {
 }
 
 // ---- Report --------------------------------------------------------------
+// Run metrics — the only place "did parallel actually pay off / how good was the plan" is observable.
+// gateFailRate + conflictRate are direct signals of plan quality (wrong wave grouping shows up here).
+const attempted = totalRunnable
+const metrics = {
+  waves: waveStats,
+  totalSeconds: waveStats.reduce((n, w) => n + w.seconds, 0),
+  totalTokens: budget.spent() - tokensAtStart,
+  attempted,
+  shipped: shipped.length,
+  gateFailures: built.filter((b) => b.result === 'failed').length,
+  mergeConflicts: mergeFailed.length,
+  gateFailRate: attempted ? +(built.filter((b) => b.result === 'failed').length / attempted).toFixed(2) : 0,
+  conflictRate: attempted ? +(mergeFailed.length / attempted).toFixed(2) : 0,
+}
+log(
+  `Metrics: ${metrics.totalSeconds}s, ~${metrics.totalTokens} tok, ` +
+    `${metrics.shipped}/${attempted} shipped, ` +
+    `gate-fail ${metrics.gateFailures} (${metrics.gateFailRate}), merge-conflict ${metrics.mergeConflicts} (${metrics.conflictRate})` +
+    (metrics.conflictRate > 0 ? ' — conflicts mean the plan mis-grouped a wave; tighten module disjointness next run' : ''),
+)
+
 return {
   feature: feat,
   shipped: shipped.map((b) => ({ file: b.file, commit: b.commit, note: b.note })),
@@ -206,4 +237,5 @@ return {
   deferred: plan.deferred,
   mergedBranches: mergedOk,
   tidied,
+  metrics,
 }

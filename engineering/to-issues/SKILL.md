@@ -63,6 +63,8 @@ Work from the latest non-superseded `PRD*.md` in the feature directory. If the u
 
 If you have not already explored the codebase, do so to understand the current state of the code. Issue titles and descriptions should use the project's domain glossary vocabulary, and respect ADRs in the area you're touching.
 
+If the PRD touches several disjoint modules, **dispatch one Explore subagent per module in parallel** rather than reading everything inline — each returns just the seams and current shape its slices need, so the heavy reading burns subagent context instead of this session's. (Skip the fan-out for a single-module feature, or when `CODEBASE.md` already gives you the map.)
+
 ### 3. Draft vertical slices
 
 Break the plan into **tracer bullet** issues. Each issue is a thin vertical slice that cuts through ALL integration layers end-to-end, NOT a horizontal slice of one layer.
@@ -101,12 +103,8 @@ Write issues in dependency order (blockers first) so you can reference real file
 <issue-template>
 
 ---
-type: issue
-feature: <feat-slug>
-status: ready-for-agent
-category: enhancement
-blocked_by: []
-created: <ISO date>
+# frontmatter per ARTIFACT-FORMAT.md — type / feature / status / category / blocked_by / refines / created
+# a fresh slice defaults to status: ready-for-agent, category: enhancement
 ---
 
 ## 上级（Parent）
@@ -139,11 +137,7 @@ Avoid specific file paths or code snippets — they go stale fast. Exception: if
 
 </issue-template>
 
-**Frontmatter field rules** (full schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md)):
-
-- `category` — `enhancement` for a normal PRD slice; `detail` for a small sub-behavior added later that does NOT warrant a PRD revision (MUST also set `refines:`); `redo` / `fix` for re-work of a `done` slice.
-- `blocked_by` — list of sibling slugs (filename without `.md`) that must reach `done` first. `/ship` topologically sorts on this.
-- `refines` — set to the parent slice's slug when `category` is `detail` / `redo` / `fix`. This keeps incremental detail work traceable instead of becoming an orphan issue. Omit for top-level `enhancement` slices.
+**Frontmatter** — fill every field per the schema in [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md). The three fields that drive this skill's output: `category` (`enhancement` default; `detail`/`redo`/`fix` for later sub-behaviour / re-work, which MUST also set `refines:`), `blocked_by` (sibling slugs that must reach `done` first — `/ship` topologically sorts on it), and `refines` (parent slug, set for non-top-level slices so incremental work stays traceable instead of orphaned).
 
 After writing the issues, regenerate `.scratch/INDEX.md` (see [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md)) so the feature's state counts reflect the new files.
 

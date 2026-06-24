@@ -28,6 +28,8 @@ If no hits, skip to step 1 with option (a).
 
 Explore the repo to understand the current state of the codebase, if you haven't already. Use the project's domain glossary vocabulary throughout the PRD, and respect any ADRs in the area you're touching.
 
+If the feature spans several disjoint modules, **dispatch one Explore subagent per module in parallel** rather than reading everything inline — each returns just the seams and current shape the PRD needs, keeping the heavy reading out of this session's context. (Skip it for a single-module feature, or when `CODEBASE.md` already supplies the map.)
+
 ### 2. Sketch test seams
 
 Sketch out the seams at which the feature will be tested. Existing seams should be preferred to new ones. Use the highest seam possible. If new seams are needed, propose them at the highest point you can. Check with the user that these seams match expectations.

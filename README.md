@@ -415,18 +415,16 @@ A、B 两条线都流到这里。下面按真实场景排，**每节末尾标注
 >
 > **反例**：上一 session 工作已完整结束（issue 已 `status: done`）→ **不要写 handoff**，也不要 `/resume` 续上。下个 session 直接 `/tdd <next-issue-path>` 或 `/ship <feat>` 进下一条。handoff 是给"半截工作"留的桥，不是切 session 的仪式。
 
-### 让 token 缓存效率最大化
+### 省 token 的几条姿势
 
-Claude Code 用 prompt caching：**对话前缀稳定不变的内容不重复算钱**。前缀越稳 + 越长，缓存越值钱，频繁修改的内容（issue 文件、PRD）放在对话靠后。4 条具体姿势：
+Claude Code 用 prompt caching：**对话前缀稳定不变的内容不重复算钱**。前缀越稳 + 越长缓存越值钱，频繁修改的内容（issue、PRD）放在对话靠后。围绕这点和"别每次重扫代码仓"，几条具体做法：
 
-1. **保持 CLAUDE.md / SKILL.md 不变** — 这就是为什么全局规则只放 `~/.claude/CLAUDE.md` 一处，各 skill 不重复语言约定。CLAUDE.md 整段进缓存，几乎免费。
-2. **同 session 内别中途插大块陕生内容** — 比如做着 issue 01 中途让 agent 把 `docs/architecture-overview.md` 整篇读一下聊聊——50KB 进 context 后，**之后所有调用的前缀都变长了**。聊大文档另开 session 或用 subagent 隔离。
-3. **不要把 PRD / issue 内容粘贴到对话里** — 让 agent 用 file read 工具读。粘贴会插在对话开头之后，**破坏前缀稳定性**。直接说"读 `.scratch/balance/issues/02-foo.md`" 比把内容复制过来好得多。
-4. **整文件读 > 多次 grep 摸索** — 当你已经知道哪个文件相关时，让 agent 一次读完，比 5 次 grep 更省。**整文件读会进缓存，下次再读几乎免费**；散乱 grep 缓存利用率低且工具调用本身贵。`CODEBASE.md` 的"坑/下手处"价值最大的地方就在这——它直接告诉 agent 该整文件读哪个 seam，跳过盲目 grep 摸索的阶段。
+1. **保持 CLAUDE.md / SKILL.md 不变** — 全局规则只放 `~/.claude/CLAUDE.md` 一处、各 skill 不重复语言约定，就是为此。CLAUDE.md 整段进缓存，几乎免费。
+2. **同 session 别中途插大块陌生内容** — 做着 issue 01 中途让 agent 整篇读 50KB 的 `docs/architecture-overview.md`，**之后所有调用的前缀都变长**。聊大文档另开 session 或用 subagent 隔离。
+3. **不要把 PRD / issue 内容粘贴进对话** — 让 agent 用 file read 工具读。粘贴会插在对话开头之后**破坏前缀稳定性**。说"读 `.scratch/balance/issues/02-foo.md`"远好过复制内容。
+4. **整文件读 > 多次 grep 摸索** — 已知哪个文件相关时让 agent 一次读完。**整文件读进缓存，下次几乎免费**；散乱 grep 缓存利用率低、工具调用本身也贵。
 
-### 避免每次都重新扫代码仓
-
-主流程 skill 都有 "explore codebase" 一步。**真正的浪费不是它扫，而是它每次都从零开始扫**。四层解：
+真正的浪费不是 skill 扫代码，而是**每次都从零扫**。一次投入、长期复用的四个杠杆：
 
 | 法子 | 一次投入 | 长期收益 |
 |---|---|---|
@@ -435,9 +433,9 @@ Claude Code 用 prompt caching：**对话前缀稳定不变的内容不重复算
 | PRD 写明涉及模块 | `/to-prd` 时显式说"涉及 `src/services/balance/`" | `/to-issues`、`/tdd` 接力时直接读 PRD 里写好的，不再扫 |
 | `/zoom-out` 临时看懂单模块 | `/zoom-out <path>` 即用即走（默认只读） | 快速理解一块陌生代码；值得长期保留就让它落盘进 `CODEBASE.md` |
 
-最简单的一条：**别说"做一下 X 功能"，直接说"在 `<file>` 实现 X，按 CONTEXT.md 里的 Y 概念扩展"**。给 agent 越具体的入手点，它探索范围越小。
+最简单的一条：**别说"做一下 X 功能"，直接说"在 `<file>` 实现 X，按 CONTEXT.md 里的 Y 概念扩展"**。给 agent 越具体的入手点，它探索范围越小。`CODEBASE.md` 的"坑/下手处"价值最大处就在这——直接告诉 agent 该整文件读哪个 seam，跳过盲目 grep 摸索。
 
-> **开机自动加载**：「会话开机」约定写在你的**全局 `~/.claude/CLAUDE.md` 模板**里（§6 文档布局表下方），每个 session 自动载入——先读 `CODEBASE.md` + `CONTEXT.md` 全文、扫 ADR 标题，并检查 `CODEBASE.md` 的 section 是否相对当前 HEAD 漂移；文件不存在就静默跳过，所以在没用这套约定的仓库里自动失效。`/resume` 复用同一步，再叠 handoff 续接。这才真正兑现"对整个项目的理解跨 session 保留"，而不是绑在某次任务上随 handoff 一起被消费掉。（约定写在全局模板一处，**不**由 `/hys-setup` 往每个仓库重复注入——那会造一堆会漂移的副本；只有 per-repo 的单/多 context 布局留在 `docs/agents/domain.md`。）
+> **开机自动加载**：「会话开机」约定写在**全局 `~/.claude/CLAUDE.md` 模板**里（§6 文档布局表下方），每个 session 自动载入——先读 `CODEBASE.md` + `CONTEXT.md` 全文、扫 ADR 标题，并检查 `CODEBASE.md` 各 section 是否相对当前 HEAD 漂移；文件不存在就静默跳过，在没用这套约定的仓库里自动失效。`/resume` 复用同一步再叠 handoff。这才真正兑现"对项目的理解跨 session 保留"，而非绑在某次任务上随 handoff 被消费掉。（约定写在全局模板一处，**不**由 `/hys-setup` 往每个仓库重复注入——那会造一堆会漂移的副本；只有 per-repo 的单/多 context 布局留在 `docs/agents/domain.md`。）
 
 ### 两条经验法则
 
