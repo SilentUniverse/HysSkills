@@ -66,7 +66,25 @@ foreach ($t in 'rg','fd','bat','jq','yq','sg','eza','sd') { "$t -> $((Get-Comman
 > macOS：`brew install ripgrep fd bat eza jq yq ast-grep sd`
 > Linux：用发行版包管理器或 `cargo install`（需 Rust ≥ 支持 edition2024，否则 `ast-grep` / `sd` 走二进制发行版）。
 
-> 这些工具的**分层使用规则**（内置 Grep/Glob/Read 优先，落到 shell 才用 rg/fd；frontmatter 用 yq、代码结构用 ast-grep）写在 `~/.claude/CLAUDE.md` 的 **§7 Modern CLI tooling**。安装那步整份拷 `CLAUDE.md` 时已带上，无需在此重复粘贴。
+### 把工具约定写进 `~/.claude/CLAUDE.md`
+
+全局 `CLAUDE.md` 已加 **`## 7. Modern CLI tooling`** 一节，定下「内置 Grep/Glob/Read 工具优先，落到 shell 才用 rg/fd/bat；frontmatter 用 yq、代码结构用 ast-grep」的分层规则。要点直接复制：
+
+````markdown
+## 7. Modern CLI tools
+
+Prefer modern tools, but respect the layering — the harness already exposes ripgrep-backed `Grep` / `Glob` / `Read` tools with built-in permission integration. Use those native tools for routine search and read operations; drop to a shell tool only when the built-in primitives cannot express the required logic.
+- `rg` not `grep` · `fd` not `find` · `bat` not `cat` · `delta` not `git diff` · `eza` not `ls`· `sd` not `sed` 
+- `sg` not `grep` for refactoring · `ctags` not `grep` for symbol lookup
+- `jq` not `awk`/`sed` for JSON · `yq` not hand-editing for YAML(e.g., extracting YAML frontmatter: `yq --front-matter=extract '.status' <file>`).
+- `pnpm` not `npm`
+
+### Tool Selection Logic
+Choose the right tool for the structural depth of the target data:
+* **Text-based:** `rg` matches raw text lines efficiently but lacks syntax awareness.
+* **Syntax-based:** `ast-grep` parses and matches AST nodes (Abstract Syntax Tree), ensuring structurally accurate code queries.
+* **Data-based:** Use `jq` or `yq` strictly based on the serialization format. They complement each other and cannot be used interchangeably.
+````
 
 ---
 
