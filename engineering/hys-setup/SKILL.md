@@ -34,7 +34,7 @@ Classify the repo into one of four cases based on what step 1 found, and announc
 
 **Case 1 — Clean repo.** No `.scratch/`, no `docs/agents/`, no existing `## Agent skills` block. Skip migration; proceed to step 3.
 
-**Case 2 — Already on hys conventions.** `.scratch/<feat>/issues/*.md` files have `Status:` lines (or frontmatter) that already match the 3-state vocabulary in `triage-labels.md` (`ready-for-agent` / `ready-for-human` / `done`). Tell the user setup will refresh `docs/agents/*.md` only, leaving issue files untouched. If the issue files still carry only a bare `Status:` line (no YAML frontmatter), or `.scratch/INDEX.md` is missing, also run the **Case 5 frontmatter migration** before proceeding. Otherwise proceed to step 3.
+**Case 2 — Already on hys conventions.** `.scratch/<feat>/issues/*.md` files have `Status:` lines (or frontmatter) that already match the 3-state vocabulary in `state-vocabulary.md` (`ready-for-agent` / `ready-for-human` / `done`). Tell the user setup will refresh `docs/agents/*.md` only, leaving issue files untouched. If the issue files still carry only a bare `Status:` line (no YAML frontmatter), or `.scratch/INDEX.md` is missing, also run the **Case 5 frontmatter migration** before proceeding. Otherwise proceed to step 3.
 
 **Case 3 — Old setup detected (`mattpocock/skills` 5-state, or earlier hys 6-state).** Either `docs/agents/issue-tracker.md` references `gh` / `glab` CLI, or existing issue files use deprecated states (`needs-triage`, `needs-info`, `wontfix`, `inbox`, `blocked`, `doing`, `shelved`). Offer:
 
@@ -119,7 +119,7 @@ Confirm the layout:
 Show the user a draft of:
 
 - The `## Agent skills` block to add to whichever of `CLAUDE.md` / `AGENTS.md` is being edited (see step 4 for selection rules)
-- The contents of `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, `docs/agents/domain.md`
+- The contents of `docs/agents/issue-tracker.md`, `docs/agents/state-vocabulary.md`, `docs/agents/domain.md`
 
 Let them edit before writing.
 
@@ -148,7 +148,7 @@ The block:
 
 ### State vocabulary
 
-[one-line summary of the three states]. See `docs/agents/triage-labels.md`.
+[one-line summary of the three states]. See `docs/agents/state-vocabulary.md`.
 
 ### Domain docs
 
@@ -158,7 +158,7 @@ The block:
 Then write the three docs files using the seed templates in this skill folder as a starting point:
 
 - [issue-tracker-local.md](./issue-tracker-local.md) — local-markdown issue tracker（默认）
-- [triage-labels.md](./triage-labels.md) — label mapping
+- [state-vocabulary.md](./state-vocabulary.md) — the 3-state model
 - [domain.md](./domain.md) — domain doc consumer rules + layout
 
 For a non-default issue tracker (the user explicitly chose "Other"), write `docs/agents/issue-tracker.md` from scratch using the user's description.
