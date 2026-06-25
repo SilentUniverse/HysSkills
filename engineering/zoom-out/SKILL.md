@@ -52,8 +52,3 @@ CODEBASE.md so the next session skips re-exploring?"_ Write only on a yes (or `/
 > finds them; a stored copy just goes stale) — drop them. What passes is the operational
 > understanding the code can't hand you: landmines, seam judgment, cross-module synthesis, mid-weight
 > why. Decisions → ADR, vocabulary → CONTEXT.md.
-
-Mechanically: write **one `## ` section per area**, stamp its `git_base` with current HEAD, touch
-only the sections you mapped this run (that's what keeps drift detection per-area), and create
-`CODEBASE.md` lazily. Keep it tiny — it's loaded every session; most sections are 2–4 lines, and an
-area with nothing non-obvious gets no section at all.

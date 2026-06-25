@@ -6,11 +6,9 @@ argument-hint: "Feature slug (optional; omit to use the latest active handoff)"
 
 # Resume
 
-The inverse of `/handoff`. It removes the friction of "which file do I read, where did I put it,
-is the path still valid" — the user types `/resume` and the session continues. All handoff
-artifacts follow the handoff frontmatter schema (`type` / `feature` / `git_base` / `status` / `date`)
-defined in the `ship` / `to-issues` skills' `ARTIFACT-FORMAT.md`. Handoffs live only under
-`.scratch/` — feature-scoped at `.scratch/<feat>/handoff.md`, cross-feature at `.scratch/handoff.md`.
+The inverse of `/handoff` — locate the active handoff, verify its baseline, continue from its 开机动作序列.
+Handoffs live under `.scratch/` (feature-scoped `.scratch/<feat>/handoff.md` or cross-feature
+`.scratch/handoff.md`); frontmatter per [ARTIFACT-FORMAT.md](../../engineering/ARTIFACT-FORMAT.md).
 
 ## Invocation
 
@@ -21,13 +19,8 @@ defined in the `ship` / `to-issues` skills' `ARTIFACT-FORMAT.md`. Handoffs live 
 
 ### 0. Orientation is already loaded — don't re-own it
 
-The session-start rule in the global `CLAUDE.md` (§6) loads the orientation layer
-(`CODEBASE.md` + `CONTEXT.md` in full, `docs/adr/` titles, `git_base` drift check) **unconditionally
-at the start of every session** — it does not wait for `/resume`. So by the time you run `/resume`,
-the project context is already in hand. `/resume`'s job is only to *layer a handoff on top*: don't
-re-load or re-explore what orientation already gave you. If for some reason orientation hasn't run
-this session (e.g. the §6 rule isn't present in this repo's setup), run it now per
-`docs/agents/domain.md` before continuing.
+CLAUDE.md §6 loads the orientation layer at session start, before `/resume` runs. So `/resume` only
+*layers a handoff on top* — don't re-load or re-explore what orientation already gave you.
 
 ### 1. Locate the handoff
 
@@ -61,9 +54,8 @@ If the handoff names a feature, also glance at `.scratch/<feat>/INDEX.md` row an
 
 ### 4. Mark consumed when the work is finished
 
-A handoff is a bridge for half-finished work, not a permanent record. Once the work it describes
-reaches a natural stopping point (issue `done`, or the user starts something else), set its
-frontmatter `status:` to `consumed`. If the session itself runs long and needs a fresh handoff,
-write a new one via `/handoff` (overwriting the same rolling file).
+Once the work reaches a natural stopping point (issue `done`, or the user starts something else),
+set the handoff's frontmatter `status:` to `consumed`. If the session itself runs long and needs a
+fresh handoff, write a new one via `/handoff` (overwriting the same rolling file).
 
 Do not mark `consumed` mid-task — only when the bridge has served its purpose.

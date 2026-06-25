@@ -59,7 +59,7 @@ For each AC in the issue, search the project's test files for existing coverage.
 When all AC pass — and for `ready-for-human`, hands-on verification is confirmed — set the frontmatter `status:` to `done` and append to `## Comments`:
 
 ```markdown
-### 完成 — YYYY-MM-DD (commit <short-hash>)
+### 完成 — YYYY-MM-DD
 
 - 新增测试：<list of test files + case counts>
 - 验收：N/M ✅
@@ -67,44 +67,17 @@ When all AC pass — and for `ready-for-human`, hands-on verification is confirm
 - 备注：<optional one-liner — e.g. real-device check passed on Pixel 6>
 ```
 
+`/tdd` does **not** commit — that's a separate step (yours, or `/ship`'s automatic run).
+
 Then regenerate `.scratch/INDEX.md` so the feature's state counts reflect the new `done` (per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md)). The issue file itself stays in `issues/` — `/tidy` moves it to `issues/archive/` later, not `/tdd`.
 
 If the run is aborted (test framework broken, environment unfixable), revert `status:` to its original value and append a brief failure note to `## Comments`.
 
-## Philosophy
+## Test philosophy
 
-**Core principle**: Tests should verify behavior through public interfaces, not implementation details. Code can change entirely; tests shouldn't.
-
-**Good tests** are integration-style: they exercise real code paths through public APIs. They describe _what_ the system does, not _how_ it does it. A good test reads like a specification - "user can checkout with valid cart" tells you exactly what capability exists. These tests survive refactors because they don't care about internal structure.
-
-**Bad tests** are coupled to implementation. They mock internal collaborators, test private methods, or verify through external means (like querying a database directly instead of using the interface). The warning sign: your test breaks when you refactor, but behavior hasn't changed. If you rename an internal function and tests fail, those tests were testing implementation, not behavior.
-
-See [tests.md](tests.md) for examples and [mocking.md](mocking.md) for mocking guidelines.
-
-## Anti-Pattern: Horizontal Slices
-
-**DO NOT write all tests first, then all implementation.** This is "horizontal slicing" - treating RED as "write all tests" and GREEN as "write all code."
-
-This produces **crap tests**:
-
-- Tests written in bulk test _imagined_ behavior, not _actual_ behavior
-- You end up testing the _shape_ of things (data structures, function signatures) rather than user-facing behavior
-- Tests become insensitive to real changes - they pass when behavior breaks, fail when behavior is fine
-- You outrun your headlights, committing to test structure before understanding the implementation
-
-**Correct approach**: Vertical slices via tracer bullets. One test → one implementation → repeat. Each test responds to what you learned from the previous cycle. Because you just wrote the code, you know exactly what behavior matters and how to verify it.
-
-```
-WRONG (horizontal):
-  RED:   test1, test2, test3, test4, test5
-  GREEN: impl1, impl2, impl3, impl4, impl5
-
-RIGHT (vertical):
-  RED→GREEN: test1→impl1
-  RED→GREEN: test2→impl2
-  RED→GREEN: test3→impl3
-  ...
-```
+Tests verify behavior through public interfaces, not implementation details — see [tests.md](tests.md)
+and [mocking.md](mocking.md). Write one test at a time (vertical slices), never batch all tests then
+all implementation.
 
 ## Workflow
 
@@ -188,6 +161,17 @@ pass/fail tally, and the failing cases' messages (e.g. `<cmd> > .scratch/tmp/sui
 grep the failures, or use the runner's quiet/summary reporter). Read the full log only when a
 failure's cause isn't clear from the summary. Same for `git diff` / search dumps — summarise, don't
 inline the whole thing.
+
+**Run the full suite in a subagent (forks green vs red).** A full suite is slow and its output is
+dense — run it in a subagent so the main session stays free (and can do other work while it runs).
+The subagent applies the redirect-and-grep rule above in its own context, then reports back by
+outcome:
+- **Green** → one line: pass tally. The main session absorbs nothing else.
+- **Red** → failing case names + a trimmed traceback (not the thousands of raw lines). The main
+  session uses that concentrated material to decide: self-diagnose here, or dispatch another subagent.
+
+Scoped (per-cycle) tests stay in-session — they're seconds-long, so the overhead of a subagent
+isn't worth it and failures are easiest to see immediately.
 
 ## Checklist Per Cycle
 

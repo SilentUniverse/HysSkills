@@ -23,10 +23,6 @@ view and clears history out of the live set. All artifacts follow [ARTIFACT-FORM
 - Right after a `redo`/`fix` slice lands, to retire the tests it superseded.
 - Any time the live working set feels noisy and you want reality re-summarized.
 
-This is non-destructive to history: archiving is a `git mv`, and `done` issue bodies are never
-edited (the immutability rule holds). It only changes *where* files live and regenerates derived
-views.
-
 ## Process
 
 ### 1. Survey
@@ -65,13 +61,8 @@ Show one preview covering all four actions, then wait for confirmation (yes-all 
 
 - **Archive** — `git mv .scratch/<feat>/issues/NN-*.md .scratch/<feat>/issues/archive/` for each
   confirmed `done` issue. Create `archive/` if absent. Never edit the body or `status` — immutability holds.
-- **Regenerate `SUMMARY.md`** — aggregate the `### 完成` blocks (delivered slices + commit hashes,
-  current test coverage) into `.scratch/<feat>/SUMMARY.md` per the format doc. Overwrite in place;
-  it is a derived artifact. Use `CONTEXT.md` vocabulary for the one-paragraph synthesis.
-- **Test audit** — for zombie tests (those a `redo`/`fix` slice replaced) and duplicates the user
-  confirmed, delete the test files (or the specific cases). This is the periodic backstop for the
-  per-redo cleanup `/tdd` already does at redo time. Run the test suite after deletion to confirm
-  nothing green turned red unexpectedly.
+- **Regenerate `SUMMARY.md`** — aggregate the `### 完成` blocks into `.scratch/<feat>/SUMMARY.md` per the format doc.
+- **Test audit** — for zombie tests (those a `redo`/`fix` slice replaced) and duplicates the user confirmed, delete the test files (or the specific cases). Run the test suite after deletion to confirm nothing green turned red unexpectedly.
 - **Orphan resolution** — for each flagged orphan, apply the user's choice: add a `refines:` field,
   fold it into a PRD revision (hand off to `/to-prd`), or relabel `category: detail` and archive.
 

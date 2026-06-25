@@ -100,7 +100,7 @@ Follow the /tdd skill discipline:
 - Tests verify behavior through public interfaces, not implementation details.
 
 VERIFICATION GATE (hard): commands are cached in docs/agents/domain.md (infer from project config if absent, then write them back). Run build + the touched modules' tests — scoped, NOT the whole suite (the orchestrator runs the full suite once after merge-back). You may commit ONLY if they pass.
-- On pass: in THIS worktree, commit the code + tests + the issue file with frontmatter status: done and a "### 完成 — <date> (commit <hash>)" record appended to ## Comments (test files + case counts). Then report your branch (\`git branch --show-current\`) and short hash (\`git rev-parse --short HEAD\`). Return result "done".
+- On pass: in THIS worktree, commit the code + tests + the issue file with frontmatter status: done and a "### 完成 — <date>" record appended to ## Comments (test files + case counts). Then report your branch (\`git branch --show-current\`) and short hash (\`git rev-parse --short HEAD\`). Return result "done".
 - On fail: do NOT commit. Return result "failed" with a short reason. Leave branch/commit empty.
 
 **Do NOT modify .scratch/INDEX.md** — the orchestrator regenerates it once after merge-back, so per-worktree edits would collide.
