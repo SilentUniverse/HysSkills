@@ -1,6 +1,6 @@
 ---
 name: resume
-description: Resume work from the most recent handoff. Finds the active handoff via frontmatter and the LATEST pointer, verifies the git baseline still matches, then executes its 开机动作序列. Use at the start of a new session to continue a multi-session task without hunting for the handoff file.
+description: Resume work from the most recent handoff. Finds the active handoff under .scratch/ by frontmatter, verifies the git baseline still matches, then executes its 开机动作序列. Use at the start of a new session to continue a multi-session task without hunting for the handoff file.
 argument-hint: "Feature slug (optional; omit to use the latest active handoff)"
 ---
 
@@ -9,7 +9,8 @@ argument-hint: "Feature slug (optional; omit to use the latest active handoff)"
 The inverse of `/handoff`. It removes the friction of "which file do I read, where did I put it,
 is the path still valid" — the user types `/resume` and the session continues. All handoff
 artifacts follow the handoff frontmatter schema (`type` / `feature` / `git_base` / `status` / `date`)
-defined in the `ship` / `to-issues` skills' `ARTIFACT-FORMAT.md`.
+defined in the `ship` / `to-issues` skills' `ARTIFACT-FORMAT.md`. Handoffs live only under
+`.scratch/` — feature-scoped at `.scratch/<feat>/handoff.md`, cross-feature at `.scratch/handoff.md`.
 
 ## Invocation
 
@@ -31,11 +32,10 @@ this session (e.g. the §6 rule isn't present in this repo's setup), run it now 
 ### 1. Locate the handoff
 
 - `/resume <feat>` → read `.scratch/<feat>/handoff.md`.
-- `/resume` (no arg) → read `docs/handoffs/LATEST.md`, follow its pointer. If `LATEST.md` is
-  missing, scan `.scratch/*/handoff.md` and `docs/handoffs/*.md` for `status: active` and pick the
-  newest by `date` (tie-break on file mtime). If none is `active`, tell the user there's nothing to
-  resume and stop — do not resume a `consumed` handoff without explicit confirmation. (Step 0 has
-  already run, so even with no handoff the session is oriented — say so rather than leaving the user
+- `/resume` (no arg) → scan `.scratch/**/handoff.md` for `status: active` and pick the newest by
+  `date` (tie-break on file mtime). If none is `active`, tell the user there's nothing to resume and
+  stop — do not resume a `consumed` handoff without explicit confirmation. (Step 0 has already run,
+  so even with no handoff the session is oriented — say so rather than leaving the user
   empty-handed.)
 
 ### 2. Verify the baseline
@@ -63,7 +63,7 @@ If the handoff names a feature, also glance at `.scratch/<feat>/INDEX.md` row an
 
 A handoff is a bridge for half-finished work, not a permanent record. Once the work it describes
 reaches a natural stopping point (issue `done`, or the user starts something else), set its
-frontmatter `status:` to `consumed` and update `docs/handoffs/LATEST.md`. If the session itself runs
-long and needs a fresh handoff, write a new one via `/handoff` (which supersedes this pointer).
+frontmatter `status:` to `consumed`. If the session itself runs long and needs a fresh handoff,
+write a new one via `/handoff` (overwriting the same rolling file).
 
 Do not mark `consumed` mid-task — only when the bridge has served its purpose.

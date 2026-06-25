@@ -423,7 +423,7 @@ A、B 两条线都流到这里。下面按真实场景排，**每节末尾标注
 /handoff <下个 session 要干啥>
 ```
 
-写 6 段骨架的交接文档：**feature 相关**的滚动写到 `.scratch/<feat>/handoff.md`（带 frontmatter，和该 feature 的 PRD/issue 同处，永远不散落）；**跨 feature** 的才进 `docs/handoffs/<日期>-<主题>.md`。每次写都会刷新 `docs/handoffs/LATEST.md` 指针。**第 4 段"关键口径清单"是核心**——决策可以丢，决策的"为什么"不能丢。
+写 6 段骨架的交接文档：**feature 相关**的滚动写到 `.scratch/<feat>/handoff.md`（带 frontmatter，和该 feature 的 PRD/issue 同处，永远不散落）；**跨 feature** 的滚动写到 `.scratch/handoff.md`（`.scratch/` 根，单文件覆盖）。**第 4 段"关键口径清单"是核心**——决策可以丢，决策的"为什么"不能丢。handoff 只记状态供恢复，不管提交——手动改动由人最终提交，自动改动由 `/ship` 编排提交。
 
 **下一个 session 怎么续**：直接敲一句（不需要任何前置仪式、不用记路径）：
 
@@ -431,7 +431,7 @@ A、B 两条线都流到这里。下面按真实场景排，**每节末尾标注
 /resume
 ```
 
-`/resume` 读 `LATEST.md` 找到最近 `status: active` 的 handoff，**校验它的 `git_base` 和当前 HEAD 是否一致**（HEAD 动过会警告并列出 `git log`），然后执行它的"开机动作序列"。续指定 feature 用 `/resume <feat>`。工作收尾后它把 handoff 标 `consumed`。
+`/resume` 扫 `.scratch/**/handoff.md` 找到最近 `status: active` 的 handoff，**校验它的 `git_base` 和当前 HEAD 是否一致**（HEAD 动过会警告并列出 `git log`），然后执行它的"开机动作序列"。续指定 feature 用 `/resume <feat>`。工作收尾后它把 handoff 标 `consumed`。
 
 > **频率建议**：长任务每天结束前留一份；快跑的小任务做完直接关；多 session 跨越的 epic 在每次切换前都留一份。
 >
@@ -529,7 +529,7 @@ adb logcat -b crash -d                                 # 抓 crash / ANR
 
 ### 元工作流
 
-- [handoff](productivity/handoff/SKILL.md) — 交接文档，跨 session 续命（6 段骨架 + frontmatter + LATEST 指针）
+- [handoff](productivity/handoff/SKILL.md) — 交接文档，跨 session 续命（6 段骨架 + frontmatter）
 - [resume](productivity/resume/SKILL.md) — handoff 的逆操作：找最近 active handoff、校验 baseline、按开机序列续上
 - [caveman](productivity/caveman/SKILL.md) — 中文极简输出模式（省 ~70% token）
 - [teach](productivity/teach/SKILL.md) — 多 session 教学（不限编码场景）

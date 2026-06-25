@@ -11,7 +11,7 @@ Write a minimal recoverable snapshot so the next session can continue from the c
 Per the layout in the `ship` / `to-issues` skills' `ARTIFACT-FORMAT.md`:
 
 - **Feature-scoped work** → `.scratch/<feat>/handoff.md` (rolling — overwrite in place each time; git keeps history). Lives next to that feature's PRD and issues so it never gets lost.
-- **Cross-feature work** → `docs/handoffs/<date>-<topic>.md` (e.g. `docs/handoffs/2026-06-12-auth-refactor.md`).
+- **Cross-feature work** → `.scratch/handoff.md` (a single rolling file at the `.scratch/` root).
 
 Do **not** use the OS temp directory — it gets cleared between sessions. If not inside a git repo, fall back to the working directory root.
 
@@ -27,7 +27,9 @@ date: 2026-06-18
 ---
 ```
 
-After writing or updating any handoff, rewrite `docs/handoffs/LATEST.md` (a one-line pointer to the most recent handoff) so `/resume` and the user never have to guess which one is current. Format: a `type: handoff-pointer` frontmatter plus a one-line path to the current handoff (see the `ship` / `to-issues` skills' `ARTIFACT-FORMAT.md`).
+A handoff is a bridge for state recovery, not a submit step. It carries no commit instructions —
+when the work finishes, a human makes the final commit, or `/ship` orchestrates commits as part of
+its run. The handoff just captures state for the next session.
 
 ## What not to duplicate
 
