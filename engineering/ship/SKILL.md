@@ -145,9 +145,9 @@ Summarize: issues shipped (with commit hashes), issues that failed the gate (wit
 `ready-for-human` issues deferred (the hands-on checklist for the user), and whether a `/tidy` pass
 is recommended.
 
-## Three ways to run ship
+## Two ways to run ship
 
-Same contract (frontmatter DAG → verification gate → INDEX/SUMMARY), three runtimes. Pick by how
+Same contract (frontmatter DAG → verification gate → INDEX/SUMMARY), two runtimes. Pick by how
 long the work is and how much you want to watch it.
 
 ### A. In-session (this skill) — watch it, interrupt it
@@ -203,22 +203,10 @@ whether it tidied). Watch live progress with `/workflows`. Iterate by editing
 > mis-grouped two issues and a merge conflicts, that merge is **aborted** (`git merge --abort`,
 > main left clean) and the issue is reported `failed` rather than corrupting the tree.
 
-### C. `/loop` — self-paced, survives context limits
-
-For an epic that outlasts a single context window, drive ship with the built-in `/loop`. Each
-iteration is a fresh self-wake that picks up where the last left off via the durable state on disk
-(frontmatter `status`, `INDEX.md`), so context never accumulates across iterations:
-
-```
-/loop ship feature <slug> until no ready-for-agent issues remain
-```
-
-Each tick: re-read `INDEX.md` and the feature's issues, run the **next** runnable
-`ready-for-agent` issue through `/tdd`, clear the verification gate (build + scoped tests, then the
-§3b two-phase review by a fresh subagent before the work is accepted), update state, and either
-schedule the next tick or stop when the active set is empty (only `ready-for-human` / `done` left).
-Because each iteration reads state fresh from disk, a `/loop` run is the most robust against context
-exhaustion — at the cost of being strictly serial and slower to react.
+> **Spanning more than one context window?** Don't reach for an auto-loop — write a `/handoff` for
+> the feature (it records completed waves, remaining issues, and `git_base`) and continue in a fresh
+> session with `/resume`. A manual handoff keeps you in control at each boundary; an auto-loop runs
+> blind between ticks.
 
 **Which to use:**
 
@@ -226,7 +214,6 @@ exhaustion — at the cost of being strictly serial and slower to react.
 |---|---|
 | A few issues, want to supervise | A — `/ship <feat>` |
 | Many issues, one unattended background run | B — `/ship-wf` |
-| Epic spanning more than one context window | C — `/loop ship …` |
 
-All three honor the same boundary: they only touch `ready-for-agent` issues. Direction (`grill` /
+Both honor the same boundary: they only touch `ready-for-agent` issues. Direction (`grill` /
 `to-prd` / `to-issues`) and every `ready-for-human` gate stay with you.
