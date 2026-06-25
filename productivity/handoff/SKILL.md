@@ -27,10 +27,6 @@ date: 2026-06-18
 ---
 ```
 
-A handoff is a bridge for state recovery, not a submit step. It carries no commit instructions —
-when the work finishes, a human makes the final commit, or `/ship` orchestrates commits as part of
-its run. The handoff just captures state for the next session.
-
 ## What not to duplicate
 
 Content already captured elsewhere (PRDs, plans, ADRs, issues, commits, diffs) — reference by path or URL, do not copy the body.

@@ -36,25 +36,13 @@ Sketch out the seams at which the feature will be tested. Existing seams should 
 
 ### 3. Write the PRD
 
-Write the PRD using the template below, then save it under `.scratch/<feat>/`. Every PRD carries YAML frontmatter per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md):
-
-```yaml
----
-type: prd
-feature: <feat-slug>
-version: 1            # 1 for PRD.md; N for PRD-vN.md
-supersedes: PRD.md    # filename replaced; omit for version 1
-created: <ISO date>
----
-```
+Write the PRD using the template below, then save it under `.scratch/<feat>/`. Every PRD carries YAML frontmatter per [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md) (§PRD files — `type`/`feature`/`version`/`supersedes`/`created`).
 
 - Option (a): write `PRD.md` (version 1, no `supersedes`)
 - Option (b): write `PRD-vN.md` (N = highest existing + 1) with `version: N` and `supersedes:` pointing at the previous filename, plus the `取代理由` block
 - Option (c): append a dated entry under `## 修订` at the bottom of the existing PRD (frontmatter unchanged)
 
 Do **not** create issue files in this step — that's `/to-issues`'s job. Likewise, do not assign a `Status:` to the PRD itself; the `Status:` field only applies to issue files under `issues/`.
-
-> The PRD is a versioned **intent snapshot**, not a perpetually-live spec. The current-reality view lives in `.scratch/<feat>/SUMMARY.md`, regenerated from `done` issues by `/tidy`. So small detail work updates reality (issues → SUMMARY) without forcing a PRD revision — only re-run `/to-prd` when the *intent* genuinely changes.
 
 <prd-template>
 

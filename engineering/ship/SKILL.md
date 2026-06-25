@@ -6,11 +6,9 @@ argument-hint: "Feature slug (optional; omit to pick from INDEX)"
 
 # Ship
 
-The orchestration layer above `/tdd`. `/tdd` builds **one** issue; `/ship` decides **which issues,
-in what order, what can run in parallel, and how the feature wraps up**. It does not write code
-itself — it repeatedly invokes `/tdd` as the execution unit. This is the codified form of the
-"dispatch these N ready-for-agent issues to subagents" move, with fixed scheduling, verification,
-and cleanup rules. All artifacts follow [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md).
+The orchestration layer above `/tdd` — it decides which issues, in what order, what runs in
+parallel, and how the feature wraps up. It does not write code itself; it invokes `/tdd` as the
+execution unit. All artifacts follow [ARTIFACT-FORMAT.md](../ARTIFACT-FORMAT.md).
 
 > **Boundary: the agent runs the deterministic tail, not the judgment.** `/ship` only touches
 > `ready-for-agent` issues. `grill` / `to-prd` / `to-issues` (deciding direction) and every
@@ -196,17 +194,6 @@ What it does, faithfully to this skill:
 It returns a structured report (shipped + commits, failed + reasons, deferred, merged branches,
 whether it tidied). Watch live progress with `/workflows`. Iterate by editing
 `.claude/workflows/ship-wf.js` and re-running.
-
-> **Parallelism + correctness.** The heavy TDD work runs truly in parallel (isolated worktrees, no
-> shared index). The only serial step is the fast **merge-back**: branches are collected onto main
-> one at a time, so the collection never races. Disjoint modules shouldn't conflict; if the plan
-> mis-grouped two issues and a merge conflicts, that merge is **aborted** (`git merge --abort`,
-> main left clean) and the issue is reported `failed` rather than corrupting the tree.
-
-> **Spanning more than one context window?** Don't reach for an auto-loop — write a `/handoff` for
-> the feature (it records completed waves, remaining issues, and `git_base`) and continue in a fresh
-> session with `/resume`. A manual handoff keeps you in control at each boundary; an auto-loop runs
-> blind between ticks.
 
 **Which to use:**
 
