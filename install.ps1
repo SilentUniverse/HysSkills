@@ -182,6 +182,39 @@ if (Test-Path -LiteralPath $wfSource) {
     }
 }
 
+# --- Distribute global guidelines: ClaudeMD/CLAUDE.md -> ~/.claude/CLAUDE.md, and the two
+#     reference files -> ~/.claude/references/. CLAUDE.md is auto-loaded every session; the
+#     references are read on demand via the `→ ~/.claude/references/...` pointers inside it. ---
+$claudeRoot = Split-Path $Target -Parent   # $Target is ~/.claude/skills -> parent is ~/.claude
+$cmSource = Join-Path $root "ClaudeMD"
+if (Test-Path -LiteralPath $cmSource) {
+    $cmMain = Join-Path $cmSource "CLAUDE.md"
+    if (Test-Path -LiteralPath $cmMain) {
+        $cmTarget = Join-Path $claudeRoot "CLAUDE.md"
+        if ($DryRun) { Write-Host ("[DryRun] Copy CLAUDE.md -> {0}" -f $cmTarget) -ForegroundColor Yellow }
+        else {
+            Copy-Item -LiteralPath $cmMain -Destination $cmTarget -Force
+            Write-Host ("Guidelines: copied CLAUDE.md -> {0}" -f $cmTarget) -ForegroundColor Green
+        }
+    }
+
+    $refFiles = Get-ChildItem -LiteralPath $cmSource -Filter "*.md" -File |
+        Where-Object { $_.Name -ne "CLAUDE.md" }
+    if ($refFiles) {
+        $refTarget = Join-Path $claudeRoot "references"
+        if ($DryRun) {
+            Write-Host ("[DryRun] Copy {0} reference file(s) -> {1}" -f $refFiles.Count, $refTarget) -ForegroundColor Yellow
+        }
+        else {
+            if (-not (Test-Path -LiteralPath $refTarget)) { New-Item -ItemType Directory -Path $refTarget -Force | Out-Null }
+            foreach ($ref in $refFiles) {
+                Copy-Item -LiteralPath $ref.FullName -Destination (Join-Path $refTarget $ref.Name) -Force
+            }
+            Write-Host ("References: copied {0} file(s) -> {1}" -f $refFiles.Count, $refTarget) -ForegroundColor Green
+        }
+    }
+}
+
 if ($DryRun) {
     Write-Host "Dry run done. Remove -DryRun to apply." -ForegroundColor Yellow
 }
