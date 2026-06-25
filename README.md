@@ -4,8 +4,8 @@ Matt Pocock 工程方法论的本地化改造，面向 **Claude Code + 单人开
 
 - **英文思考，中文输出**：思考/代码/标识符/检索用英文；与你对话用中文；落盘文档（CONTEXT.md、ADR、PRD、issue）中文正文 + 英文术语名（与代码标识符对齐）。
 - **纯本地 issue tracker**：需求/任务/PRD 全部以 markdown 存在仓库 `.scratch/` 下，零网络、零账号。
-- **Windows 优先**：脚本提供 PowerShell 版（git 守卫、HITL 循环、检索命令、开 HTML），Unix/WSL 版同时保留。
-- **3 状态最小工作流**：`ready-for-agent` / `ready-for-human` / `done`，没有 inbox / blocked / shelved 等协作场景遗留物。
+- **Windows 优先**：脚本提供 PowerShell 版（`install.ps1` 建链接、各 skill 自带的 git 守卫/HITL 模板等），Unix/WSL 版同时保留。
+- **三状态最小工作流**：`ready-for-agent` / `ready-for-human` / `done`，没有 inbox / blocked / shelved 等协作场景遗留物。
 
 > 全局语言约定与文档布局表写在 `~/.claude/CLAUDE.md`，所有 skill 继承，**SKILL.md 自身不再重复**。
 
@@ -66,25 +66,7 @@ foreach ($t in 'rg','fd','bat','jq','yq','sg','eza','sd') { "$t -> $((Get-Comman
 > macOS：`brew install ripgrep fd bat eza jq yq ast-grep sd`
 > Linux：用发行版包管理器或 `cargo install`（需 Rust ≥ 支持 edition2024，否则 `ast-grep` / `sd` 走二进制发行版）。
 
-### 把工具约定写进 `~/.claude/CLAUDE.md`
-
-全局 `CLAUDE.md` 已加 **`## 7. Modern CLI tooling`** 一节，定下「内置 Grep/Glob/Read 工具优先，落到 shell 才用 rg/fd/bat；frontmatter 用 yq、代码结构用 ast-grep」的分层规则。要点直接复制：
-
-````markdown
-## 7. Modern CLI tools
-
-Prefer modern tools, but respect the layering — the harness already exposes ripgrep-backed `Grep` / `Glob` / `Read` tools with built-in permission integration. Use those native tools for routine search and read operations; drop to a shell tool only when the built-in primitives cannot express the required logic.
-- `rg` not `grep` · `fd` not `find` · `bat` not `cat` · `delta` not `git diff` · `eza` not `ls`· `sd` not `sed` 
-- `sg` not `grep` for refactoring · `ctags` not `grep` for symbol lookup
-- `jq` not `awk`/`sed` for JSON · `yq` not hand-editing for YAML(e.g., extracting YAML frontmatter: `yq --front-matter=extract '.status' <file>`).
-- `pnpm` not `npm`
-
-### Tool Selection Logic
-Choose the right tool for the structural depth of the target data:
-* **Text-based:** `rg` matches raw text lines efficiently but lacks syntax awareness.
-* **Syntax-based:** `ast-grep` parses and matches AST nodes (Abstract Syntax Tree), ensuring structurally accurate code queries.
-* **Data-based:** Use `jq` or `yq` strictly based on the serialization format. They complement each other and cannot be used interchangeably.
-````
+工具使用的分层规则（内置 Grep/Glob/Read 优先，落 shell 才用 rg/fd/yq/ast-grep）已写进 [`ClaudeMD/CLAUDE.md`](ClaudeMD/CLAUDE.md) §7，随模板一起拷到 `~/.claude/CLAUDE.md`，这里不重抄。
 
 ---
 
@@ -147,11 +129,11 @@ pwsh -NoProfile -File install.ps1 -Force                       # 跳过备份直
 
 需求又变 → 回到 `/grill-with-docs` 写新 ADR（标 `Supersedes:` 旧决策）→ `/to-prd` 写 `PRD-v2.md` → `/to-issues` 给对账报告。`done` 的 issue 永远不动；要改的话新建 `redo-X.md`。
 
-> **三个新环节解决三个老痛点**：`/ship` 把"口头派发 subagent"固化成带验证门的编排器；`/tidy` 给膨胀的 issue/测试做垃圾回收，PRD 不再需要时刻保鲜（现实视图由 `/tidy` 从 done issue 的完成记录聚合重生成的 `SUMMARY.md` 承载）；`/resume` 是 `/handoff` 的逆操作，一句话跨 session 续命。所有产物的 frontmatter / 索引 / 目录契约统一在 [`engineering/ARTIFACT-FORMAT.md`](engineering/ARTIFACT-FORMAT.md)。
+> 所有产物的 frontmatter / 索引 / 目录契约统一在 [`engineering/ARTIFACT-FORMAT.md`](engineering/ARTIFACT-FORMAT.md)。
 
 ---
 
-## 状态机（3 状态，仅此而已）
+## 状态机（三状态，仅此而已）
 
 | 状态 | 意思 |
 |---|---|
@@ -541,7 +523,7 @@ adb logcat -b crash -d                                 # 抓 crash / ANR
 > **维护/扩展这套 skill 时**才需要知道：内容只在引擎里定义一次，要改就改引擎那一处——
 > - 改架构词汇（给 `seam` 补定义、加新术语）→ 只改 `codebase-design/SKILL.md`
 > - 改术语 / ADR 纪律（如"何时该写 ADR"的判据）→ 只改 `domain-modeling/SKILL.md`
-> - **别在消费方（`improve-codebase-architecture` 等）里再抄一份词汇定义**——那会让两处漂移，正是这次重构要消灭的老问题。
+> - **别在消费方（`improve-codebase-architecture` 等）里再抄一份词汇定义**——那会让两处漂移。
 
 ### 元工作流
 
@@ -558,5 +540,3 @@ adb logcat -b crash -d                                 # 抓 crash / ANR
 | [git-guardrails-claude-code](misc/git-guardrails-claude-code/SKILL.md) | Claude Code 钩子，拦 `git push --force` / `reset --hard` / `clean -fd` 等危险命令，**防 agent 闯祸** |
 | [setup-pre-commit](misc/setup-pre-commit/SKILL.md) | Husky + lint-staged，commit 时自动跑 prettier / typecheck / test |
 | [migrate-to-shoehorn](misc/migrate-to-shoehorn/SKILL.md) | TS 测试 codemod：`as Type` → `fromPartial({})`，类型安全。**仅限 TS 项目** |
-
-> ~~triage~~ 已删除 — 单人开发不需要"维护者评估 issue"那套状态机。
