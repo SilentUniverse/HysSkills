@@ -190,6 +190,9 @@ phase('Tidy')
 
 const doneAfter = plan.doneCount + shipped.length
 let tidied = false
+// Note: tidy and merge-back stay at default effort on purpose — both carry judgment (tidy audits
+// zombie/duplicate tests + flags orphans; merge-back runs the full suite and diagnoses regressions),
+// so they aren't the "pure mechanical" stages that the refresh-INDEX low-effort downgrade targets.
 if (doneAfter >= 8) {
   log(`done count is ${doneAfter} (>= 8) — running tidy pass`)
   await agent(
@@ -199,10 +202,11 @@ if (doneAfter >= 8) {
   tidied = true
 } else if (shipped.length) {
   // No tidy, but worktrees were forbidden from touching INDEX.md — refresh it once now.
+  // Pure mechanical regen of one table from on-disk state, zero judgment — run at low effort.
   log(`done count is ${doneAfter} (< 8) — skipping tidy, regenerating INDEX only`)
   await agent(
     `Regenerate .scratch/INDEX.md from the current state of .scratch/*/issues/ per ARTIFACT-FORMAT.md (per-feature counts of ready-for-agent / ready-for-human / done / archived; active columns count only top-level issues/*.md, not archive/). Commit it. Do nothing else.`,
-    { phase: 'Tidy', label: 'refresh INDEX' },
+    { phase: 'Tidy', label: 'refresh INDEX', effort: 'low' },
   )
 } else {
   log(`Nothing shipped — INDEX unchanged`)

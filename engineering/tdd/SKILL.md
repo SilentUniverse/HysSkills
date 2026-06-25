@@ -181,6 +181,14 @@ regressions. The full suite + build (commands cached in `docs/agents/domain.md`)
 - **Manual, on demand.** `/tdd --full` (or "run the full suite") runs build + the whole suite now,
   for an interactive session that wants the wide signal without finishing a batch.
 
+**Keep test/build output out of context.** A full suite or build can emit thousands of lines —
+passing-test noise, progress bars, ANSI codes — and all of it bloats the context if piped straight
+back. Redirect the verbose output to `.scratch/tmp/` and pull only what you need into context: the
+pass/fail tally, and the failing cases' messages (e.g. `<cmd> > .scratch/tmp/suite.log 2>&1` then
+grep the failures, or use the runner's quiet/summary reporter). Read the full log only when a
+failure's cause isn't clear from the summary. Same for `git diff` / search dumps — summarise, don't
+inline the whole thing.
+
 ## Checklist Per Cycle
 
 ```
