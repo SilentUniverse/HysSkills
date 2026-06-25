@@ -4,7 +4,7 @@ export const meta = {
     "Workflow variant of /ship — orchestrate a feature's ready-for-agent issues to completion: plan dependency-ordered waves, run one TDD subagent per issue in isolated worktrees (parallel), merge back serially, gate each on build+test before commit, then tidy when done piles up.",
   phases: [
     { title: 'Plan', detail: 'read issues, extract DAG with yq, group disjoint work into parallel waves' },
-    { title: 'Build', detail: 'one TDD subagent per ready-for-agent issue; waves respect deps' },
+    { title: 'Build', detail: 'one TDD subagent per ready-for-agent issue; fresh-subagent two-phase review before merge; waves respect deps' },
     { title: 'Tidy', detail: 'archive done + regenerate SUMMARY when done count is high' },
   ],
 }
@@ -110,6 +110,37 @@ Return only the structured result.`,
     { schema: BUILD_SCHEMA, phase: 'Build', label: `${issue.file} (wave ${waveNo})`, isolation: 'worktree' },
   )
 
+const REVIEW_SCHEMA = {
+  type: 'object',
+  required: ['file', 'verdict'],
+  properties: {
+    file: { type: 'string' },
+    verdict: { type: 'string', enum: ['pass', 'fail'] },
+    findings: {
+      type: 'string',
+      description: 'empty if pass; if fail, the concrete spec-compliance or code-quality problems found',
+    },
+  },
+}
+
+// Two-phase review (§3b): a FRESH subagent — it did not write the code — inspects only the branch
+// diff against the issue spec. Both axes must pass: spec compliance (every AC met, no over-build /
+// scope creep, no under-build) AND code quality (style, no leftover debug code, tests verify
+// behavior via public interfaces). Read-only: it never edits, commits, or merges.
+const reviewBranch = (build, waveNo) =>
+  agent(
+    `Review the work on branch ${build.branch} for issue ${ISSUES}/${build.file} (feature "${feat}"). Working dir is the repo root.
+
+You did NOT write this code — review it adversarially, do not assume the implementer was right. Inspect ONLY the diff: \`git diff main...${build.branch}\` (or \`git diff HEAD...${build.branch}\`). Read the issue body (${ISSUES}/${build.file}) for the acceptance criteria and 实现决策.
+
+Return verdict "pass" only if BOTH axes hold:
+- **Spec compliance** — every AC is met, with NO over-build (features/abstractions/config beyond the AC — scope creep is a fail) and NO under-build (a missing AC).
+- **Code quality** — matches existing style, no leftover debug/commented-out code, no obvious defects, and the new tests verify behavior through public interfaces (not implementation details, not tautological assertions).
+
+If either axis fails, return verdict "fail" with concrete findings (file:line, which AC, what's wrong). Do NOT edit, commit, merge, or switch branches — this is read-only.`,
+    { schema: REVIEW_SCHEMA, phase: 'Build', label: `review ${build.file} (wave ${waveNo})` },
+  )
+
 const MERGE_SCHEMA = {
   type: 'object',
   required: ['merged', 'conflicted'],
@@ -150,10 +181,12 @@ Return which branches merged, which conflicted, and any suite failure.`,
 const built = []
 const mergedOk = []
 const mergeFailed = []
+const reviewFailed = []
 const waveStats = []
 const tokensAtStart = budget.spent()
-// Each wave: parallel build in isolated worktrees, then SERIAL merge-back before the next wave —
-// so wave N+1's worktrees branch from a main that already contains wave N's work (blocked_by holds).
+// Each wave: parallel build in isolated worktrees → parallel two-phase review of the green branches
+// → SERIAL merge-back of branches that passed review, before the next wave — so wave N+1's worktrees
+// branch from a main that already contains wave N's reviewed work (blocked_by holds).
 for (let i = 0; i < plan.waves.length; i++) {
   const wave = plan.waves[i]
   const waveStart = Date.now()
@@ -162,9 +195,25 @@ for (let i = 0; i < plan.waves.length; i++) {
   const results = (await parallel(wave.map((issue) => () => buildIssue(issue, i + 1)))).filter(Boolean)
   built.push(...results)
 
-  const toMerge = results.filter((r) => r.result === 'done' && r.branch)
+  // 3b. Two-phase review of the build-green branches, in parallel (each diff is independent).
+  // Only branches that pass review proceed to merge-back; a fail behaves like a gate fail.
+  const greenBuilds = results.filter((r) => r.result === 'done' && r.branch)
+  let toMerge = greenBuilds
+  if (greenBuilds.length) {
+    log(`Wave ${i + 1}: reviewing ${greenBuilds.length} branch(es) (spec + quality) in parallel`)
+    const reviews = (await parallel(greenBuilds.map((b) => () => reviewBranch(b, i + 1)))).filter(Boolean)
+    const failedReview = new Set(reviews.filter((r) => r.verdict === 'fail').map((r) => r.file))
+    reviewFailed.push(
+      ...reviews
+        .filter((r) => r.verdict === 'fail')
+        .map((r) => ({ file: r.file, note: `review failed: ${r.findings || 'spec/quality issues'} — branch left unmerged` })),
+    )
+    toMerge = greenBuilds.filter((b) => !failedReview.has(b.file))
+    if (failedReview.size) log(`Wave ${i + 1}: ${failedReview.size} branch(es) failed review, not merging`)
+  }
+
   if (toMerge.length) {
-    log(`Wave ${i + 1}: merging ${toMerge.length} branch(es) back serially`)
+    log(`Wave ${i + 1}: merging ${toMerge.length} reviewed branch(es) back serially`)
     const m = await mergeWave(toMerge, i + 1)
     mergedOk.push(...(m?.merged ?? []))
     mergeFailed.push(...(m?.conflicted ?? []))
@@ -178,12 +227,16 @@ for (let i = 0; i < plan.waves.length; i++) {
 }
 
 const conflictedFiles = new Set(mergeFailed.map((c) => c.file))
-const shipped = built.filter((b) => b.result === 'done' && b.branch && !conflictedFiles.has(b.file))
+const reviewFailedFiles = new Set(reviewFailed.map((r) => r.file))
+const shipped = built.filter(
+  (b) => b.result === 'done' && b.branch && !conflictedFiles.has(b.file) && !reviewFailedFiles.has(b.file),
+)
 const failed = [
   ...built.filter((b) => b.result === 'failed').map((b) => ({ file: b.file, note: b.note })),
+  ...reviewFailed,
   ...mergeFailed.map((c) => ({ file: c.file, note: `merge conflict on ${c.reason || c.branch} — aborted, main left clean` })),
 ]
-log(`Build complete: ${shipped.length} shipped, ${failed.length} failed (gate or merge)`)
+log(`Build complete: ${shipped.length} shipped, ${failed.length} failed (gate, review, or merge)`)
 
 // ---- Phase 3: Tidy -------------------------------------------------------
 phase('Tidy')
@@ -223,6 +276,7 @@ const metrics = {
   attempted,
   shipped: shipped.length,
   gateFailures: built.filter((b) => b.result === 'failed').length,
+  reviewFailures: reviewFailed.length,
   mergeConflicts: mergeFailed.length,
   gateFailRate: attempted ? +(built.filter((b) => b.result === 'failed').length / attempted).toFixed(2) : 0,
   conflictRate: attempted ? +(mergeFailed.length / attempted).toFixed(2) : 0,
@@ -230,7 +284,7 @@ const metrics = {
 log(
   `Metrics: ${metrics.totalSeconds}s, ~${metrics.totalTokens} tok, ` +
     `${metrics.shipped}/${attempted} shipped, ` +
-    `gate-fail ${metrics.gateFailures} (${metrics.gateFailRate}), merge-conflict ${metrics.mergeConflicts} (${metrics.conflictRate})` +
+    `gate-fail ${metrics.gateFailures} (${metrics.gateFailRate}), review-fail ${metrics.reviewFailures}, merge-conflict ${metrics.mergeConflicts} (${metrics.conflictRate})` +
     (metrics.conflictRate > 0 ? ' — conflicts mean the plan mis-grouped a wave; tighten module disjointness next run' : ''),
 )
 

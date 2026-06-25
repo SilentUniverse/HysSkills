@@ -182,7 +182,7 @@ if (Test-Path -LiteralPath $wfSource) {
     }
 }
 
-# --- Distribute global guidelines: ClaudeMD/CLAUDE.md -> ~/.claude/CLAUDE.md, and the two
+# --- Distribute global guidelines: ClaudeMD/CLAUDE.md -> ~/.claude/CLAUDE.md, and the
 #     reference files -> ~/.claude/references/. CLAUDE.md is auto-loaded every session; the
 #     references are read on demand via the `→ ~/.claude/references/...` pointers inside it. ---
 $claudeRoot = Split-Path $Target -Parent   # $Target is ~/.claude/skills -> parent is ~/.claude
