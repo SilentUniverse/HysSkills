@@ -164,8 +164,9 @@ inline the whole thing.
 
 **Run the full suite in a subagent (forks green vs red).** A full suite is slow and its output is
 dense — run it in a subagent so the main session stays free (and can do other work while it runs).
-The subagent applies the redirect-and-grep rule above in its own context, then reports back by
-outcome:
+The verbose output stays in the subagent — it does NOT need the `.scratch/tmp/` redirect above (that
+rule is for the main session running a command directly). The subagent keeps what it needs and
+reports back only by outcome:
 - **Green** → one line: pass tally. The main session absorbs nothing else.
 - **Red** → failing case names + a trimmed traceback (not the thousands of raw lines). The main
   session uses that concentrated material to decide: self-diagnose here, or dispatch another subagent.
