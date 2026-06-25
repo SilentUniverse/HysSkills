@@ -147,7 +147,7 @@ pwsh -NoProfile -File install.ps1 -Force                       # 跳过备份直
 
 需求又变 → 回到 `/grill-with-docs` 写新 ADR（标 `Supersedes:` 旧决策）→ `/to-prd` 写 `PRD-v2.md` → `/to-issues` 给对账报告。`done` 的 issue 永远不动；要改的话新建 `redo-X.md`。
 
-> **三个新环节解决三个老痛点**：`/ship` 把"口头派发 subagent"固化成带验证门的编排器；`/tidy` 给膨胀的 issue/测试做垃圾回收，PRD 不再需要时刻保鲜（现实视图交给自动重生成的 `SUMMARY.md`）；`/resume` 是 `/handoff` 的逆操作，一句话跨 session 续命。所有产物的 frontmatter / 索引 / 目录契约统一在 [`engineering/ARTIFACT-FORMAT.md`](engineering/ARTIFACT-FORMAT.md)。
+> **三个新环节解决三个老痛点**：`/ship` 把"口头派发 subagent"固化成带验证门的编排器；`/tidy` 给膨胀的 issue/测试做垃圾回收，PRD 不再需要时刻保鲜（现实视图由 `/tidy` 从 done issue 的完成记录聚合重生成的 `SUMMARY.md` 承载）；`/resume` 是 `/handoff` 的逆操作，一句话跨 session 续命。所有产物的 frontmatter / 索引 / 目录契约统一在 [`engineering/ARTIFACT-FORMAT.md`](engineering/ARTIFACT-FORMAT.md)。
 
 ---
 
@@ -173,6 +173,24 @@ rg '^status: ready-for-human' -g '**/issues/*.md' .scratch    # 我亲自做的
 ```
 
 想确定性读某 issue 的单个字段（状态 / 依赖 / refines），用 `yq --front-matter=extract '.status' <file>`，别手撸正则。要看 done / archived 的计数与全局花名册，读 `.scratch/INDEX.md`（自动维护）；要看某 feature「已建成什么」，读 `.scratch/<feat>/SUMMARY.md`（自动重生成）。
+
+---
+
+## 文档布局（为什么这样放）
+
+工作流会在你的项目里生成一系列文件，分布在三个层级。**划分依据是作用域 + 生命周期，不是"给人看 vs 给 agent 看"**——因为同一个文件的读者会随阶段变（ADR 写时 agent 起草、定稿后人回看；PRD 人和 agent 都高频读写），按读者分会让文件在目录间搬来搬去。作用域和生命周期是稳定属性，适合做目录归属。
+
+| 层级 | 位置 | 放什么 | 特征 |
+|---|---|---|---|
+| **项目级** | 仓库根 | `CONTEXT.md`（术语）、`CODEBASE.md`（结构地图） | 一个项目一份，开机加载，长期 |
+| **项目级长期文档** | `docs/` | `docs/adr/`（架构决策）、`docs/agents/`（含 `domain.md` 测试/构建命令缓存） | 长期保留，随项目增长 |
+| **feature 工作态** | `.scratch/` | `<feat>/PRD.md`、`<feat>/issues/`、`<feat>/SUMMARY.md`、`<feat>/handoff.md`、`INDEX.md` | 跟着 feature 走，活跃 issue 在顶层、`done` 的进 `issues/archive/` |
+
+**几个要点：**
+- `.scratch/` 不是"临时丢弃"——它被 git 跟踪（只有 `.scratch/tmp/` 被 ignore）。它是"feature 级工作态"：PRD/issues 是活的工作产物。
+- `INDEX.md` 由多个 skill 在改 issue 状态时重生成；`SUMMARY.md` 只由 `/tidy`（或 `/ship` 收尾触发 `/tidy`）从 done issue 的 `### 完成` 记录聚合重生成——所以 done 了但还没跑 `/tidy` 时，`SUMMARY.md` 会落后于实际。
+- `docs/agents/domain.md` 虽然是 agent 读的（缓存项目测试命令），但它是项目级长期配置，归 `docs/`——配置类文档放这里，不强求 `docs/` 纯人读。
+- `done` 的 issue 不删、进 `archive/`；ADR 被取代只标 superseded 不改原文。详见 [ARTIFACT-FORMAT.md](engineering/ARTIFACT-FORMAT.md)。
 
 ---
 
