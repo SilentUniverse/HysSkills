@@ -13,16 +13,16 @@ Matt Pocock 工程方法论的本地化改造，面向 **Claude Code + 单人开
 
 ## 全局配置（一次性，写进 `~/.claude/CLAUDE.md`）
 
-完整模板就是本仓库根目录的 [`CLAUDE.md`](CLAUDE.md)（10 节：语言约定 / Think Before Coding / Simplicity First / Surgical Changes / Goal-Driven / 文档布局 / CLI 工具链 / Run to Completion / Parallelize with Subagents / Token 预算）。直接整份拷到 `~/.claude/CLAUDE.md`（Windows 是 `C:\Users\<你>\.claude\CLAUDE.md`）。所有 skill 都继承这几节，**各 skill 内不再重复语言约定和路径布局**——这是省 context 的关键。
+完整模板就是本仓库的 [`ClaudeMD/CLAUDE.md`](ClaudeMD/CLAUDE.md)（10 节：语言约定 / Think Before Coding / Simplicity First / Surgical Changes / Goal-Driven / 文档布局 / CLI 工具链 / Run to Completion / Parallelize with Subagents / Token 预算）。直接整份拷到 `~/.claude/CLAUDE.md`（Windows 是 `C:\Users\<你>\.claude\CLAUDE.md`）。所有 skill 都继承这几节，**各 skill 内不再重复语言约定和路径布局**——这是省 context 的关键。
 
 一行拉取（raw 链接，按需替换分支）：
 
 ```powershell
-irm https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/CLAUDE.md | Set-Content "$env:USERPROFILE\.claude\CLAUDE.md"
+irm https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/ClaudeMD/CLAUDE.md | Set-Content "$env:USERPROFILE\.claude\CLAUDE.md"
 ```
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/CLAUDE.md -o ~/.claude/CLAUDE.md
+curl -fsSL https://raw.githubusercontent.com/SilentUniverse/HysSkills/main/ClaudeMD/CLAUDE.md -o ~/.claude/CLAUDE.md
 ```
 
 已有自定义 `CLAUDE.md` 就别整覆盖——只把缺的节按编号补进去即可。
