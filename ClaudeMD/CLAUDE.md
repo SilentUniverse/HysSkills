@@ -83,9 +83,6 @@ Default to subagents for work that fans out, to keep the main context clean and 
 
 ## 10. Token Budget
 
-Sensible defaults exist; reach for these when a session runs long or a workflow fans out subagents.
-- **Model routing**: `haiku` for mechanical work, `sonnet` for the ~80% middle, `opus` for architecture / hard debugging / final review. In workflows, set per-agent `model`/`effort` explicitly — an unset agent inherits the session's most expensive model.
-- **Turn count beats unit price**: a cheap model that needs 2–3× the turns is not cheaper.
-- Knobs: `MAX_THINKING_TOKENS=10000`, `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=50`, `CLAUDE_CODE_SUBAGENT_MODEL=haiku`. Keep enabled MCP servers under ~10 (each one's tool list bloats the prefix).
-
-→ Env-var syntax (Windows/bash), model table, MCP detail: `~/.claude/references/token-budget.md`
+- **Effort is the primary knob** — adaptive models (Opus 4.7/4.8, Fable 5) ignore `MAX_THINKING_TOKENS`. Set `effortLevel: high` in settings.json; do NOT use the `CLAUDE_CODE_EFFORT_LEVEL` env var — it overrides per-agent `effort` routing in workflows.
+- **Model routing**: `haiku` mechanical, `sonnet` the ~80% middle, `opus` architecture / hard debug / final review. Set per-agent `model`/`effort` in workflows. **Turn count beats unit price.**
+- **Don't set** `MAX_THINKING_TOKENS` or `CLAUDE_CODE_SUBAGENT_MODEL` — inert on adaptive models / flattens per-agent routing. On a 200k model only, `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=60` compacts earlier.
