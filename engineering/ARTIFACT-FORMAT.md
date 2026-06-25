@@ -61,18 +61,10 @@ different lifespans:
 | `CODEBASE.md` | the operational understanding grep can't give: landmines, seams, synthesis, why | regenerated as code drifts |
 | `docs/adr/` | the few hard, irreversible decisions not to re-litigate | immutable once written; deliberately rare |
 
-`CONTEXT.md` stays "glossary and nothing else" — no code paths, no structure, no implementation
-detail. **Concept→code location is not a stored field anywhere**: when the code name matches the term
-(`Order` → class `Order`), a fresh agent greps it in one query, so storing it is a stale second copy;
-when the code name *betrays* the term (`订单入账` hidden in `FooBarHandler`), grep on the term fails —
-that's a landmine, and it goes in `CODEBASE.md` as one. ADRs stay rare by design (the three-condition
-gate in `/domain-modeling`). The mid-weight "why is it shaped this way"
-reasoning that isn't worth an ADR lives **inline in `CODEBASE.md`**, next to the structure it
-explains — that's the gap CODEBASE fills, so don't force such reasoning into an ADR.
-
-**Naming** — deliberately `CODEBASE.md`, **not** `CODEBASE-MAP.md`: the root already has
-`CONTEXT-MAP.md` (the monorepo context router), and two `*-MAP.md` files side by side would be
-ambiguous. Avoid the `MAP` stem here.
+The mid-weight "why is it shaped this way" reasoning that isn't worth an ADR lives **inline in
+`CODEBASE.md`**, next to the structure it explains — that's the gap CODEBASE fills, so don't force
+such reasoning into an ADR. (`CONTEXT.md` stays a pure glossary; concept→code and landmines are
+covered by the "can't rg it" field rule below.)
 
 ```markdown
 ---
@@ -106,15 +98,14 @@ Field & structure rules:
   section was last written) as an HTML comment after the heading. This is what makes **per-section
   drift detection** possible: the consumer compares each section's `git_base` against current HEAD
   and only the stale sections need a `/zoom-out` refresh — the file is never rebuilt wholesale.
-- **Only what the code can't hand you.** A line belongs here only if a fresh agent *couldn't* rebuild
-  it with a couple of `rg`/`glob` queries (the "can't rg it" test in `/zoom-out`). Locations,
+- **Only what the code can't hand you** (the "can't rg it" test in `/zoom-out`). A line belongs here
+  only if a fresh agent *couldn't* rebuild it with a couple of `rg`/`glob` queries. Locations,
   exports, caller lists, import graphs are grep's job — persisting them creates a stale second copy.
-  What's left is *operational* understanding: landmines, seam judgment, cross-module synthesis,
-  mid-weight why. Omit any template line you have nothing non-trivial to fill it with.
-- **Concept→code is not a stored field — not here, not in `CONTEXT.md`.** When the code name matches
-  the term, grep finds it (don't store a stale copy). When the code name *betrays* the term (so grep
-  on the term fails), that's a landmine → record it as a **坑** above. `CONTEXT.md` stays a pure
-  glossary (no code paths); `CODEBASE.md` carries only operational understanding.
+  Same for concept→code: when the code name matches the term, grep finds it; when the name *betrays*
+  the term (so grep fails), that's a landmine → record it as a **坑**. What belongs here is the
+  *operational* understanding grep can't give: landmines, seam judgment, cross-module synthesis,
+  mid-weight why. (Keeps `CONTEXT.md` a pure glossary with no code paths.) Omit any template line you
+  have nothing non-trivial to fill it with.
 - Use **CONTEXT.md domain vocabulary** for concepts and **codebase-design vocabulary** (module,
   seam, depth) for structure. Don't drift into "service"/"component".
 - Decisions → ADR; vocabulary → CONTEXT.md; transient task focus and speculation → nowhere.
@@ -160,7 +151,7 @@ Field rules:
   - `enhancement` — a normal vertical slice from the PRD.
   - `detail` — a small sub-behavior added later that does NOT warrant a PRD revision. MUST carry
     a `refines:` pointing at the parent slice. This is the field that keeps incremental detail
-    work from becoming orphan issues (痛点 1).
+    work from becoming orphan issues.
   - `redo` — re-does a `done` issue the new PRD invalidated. Filename is `NN-redo-<slug>.md`.
   - `fix` — a regression fix against a `done` slice. Filename is `NN-fix-<slug>.md`.
 - **blocked_by** — list of sibling slugs (filename without `.md`) that must reach `done` first.
@@ -205,10 +196,6 @@ Field rules:
   warns if they diverged (work happened since the handoff).
 - **status** — `active` when written; `/resume` sets it to `consumed` once the work it describes is
   finished. Only `active` handoffs are resume candidates.
-
-A handoff carries no commit/submit step. When the work finishes, a human makes the final commit, or
-`/ship` orchestrates commits as part of its run — the handoff's job is only to capture state for
-the next session, never to drive the submit.
 
 ## PRD files — `.scratch/<feat>/PRD.md` / `PRD-vN.md`
 
@@ -257,7 +244,7 @@ source_issues: 7              # number of done issues aggregated
 
 `SUMMARY.md` exists so the PRD no longer has to be kept perpetually "live": the PRD is a versioned
 *intent snapshot*, while `SUMMARY.md` is the *current-reality view*. Detail work updates reality
-(issues → SUMMARY) without forcing a PRD revision (痛点 1).
+(issues → SUMMARY) without forcing a PRD revision.
 
 ## Feature index — `.scratch/INDEX.md` (generated, not authored)
 
