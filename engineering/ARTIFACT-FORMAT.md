@@ -20,20 +20,19 @@ new artifact, place and name it by these rules instead of guessing; if it doesn'
 | Tier | Lives at | What belongs here | Test |
 |---|---|---|---|
 | **Project-level singletons** | repo **root** | `CONTEXT.md`, `CONTEXT-MAP.md`, `CODEBASE.md` | one per repo, read at session start, true project-wide |
-| **Long-lived series docs** | `docs/` | `adr/`, `handoffs/`, `agents/` | kept long-term, humans read them, grows file-by-file |
-| **Feature-local work state** | `.scratch/` | `<feat>/PRD`, `issues/`, `SUMMARY`, `handoff`, `INDEX` | scoped to one feature, working-state, disposable |
+| **Long-lived series docs** | `docs/` | `adr/`, `agents/` | kept long-term, humans read them, grows file-by-file |
+| **Feature-local work state** | `.scratch/` | `<feat>/PRD`, `issues/`, `SUMMARY`, `handoff`, `INDEX`, cross-feature `handoff` | scoped to one feature, working-state, disposable |
 
 The rule of thumb: **the more project-wide / long-lived / read-at-startup an artifact is, the closer
 to root it lives; the more feature-local and disposable, the deeper into `.scratch/` it goes.**
 
 **Casing — two classes:**
 
-- **ALL-CAPS** (`CONTEXT.md`, `CONTEXT-MAP.md`, `CODEBASE.md`, `INDEX.md`, `SUMMARY.md`, `LATEST.md`,
+- **ALL-CAPS** (`CONTEXT.md`, `CONTEXT-MAP.md`, `CODEBASE.md`, `INDEX.md`, `SUMMARY.md`,
   `PRD.md`) — a **singleton with special standing** in its directory: at most one exists, and it is
   the landmark file you look for by name. Multi-word names use `SCREAMING-KEBAB` (`CONTEXT-MAP.md`).
-- **kebab-case** (`adr/NNNN-slug.md`, `issues/NN-slug.md`, `agents/*.md`,
-  `handoffs/YYYY-MM-DD-topic.md`) — a **member of a series**: many will exist, the name carries
-  content (a slug, a number, a date).
+- **kebab-case** (`adr/NNNN-slug.md`, `issues/NN-slug.md`, `agents/*.md`) — a **member of a series**:
+  many will exist, the name carries content (a slug, a number, a date).
 
 **One deliberate exception, now formalized:** everything under `.scratch/` that is *per-feature
 working state* is lowercase regardless of singleton-ness — `handoff.md`, the feature dir `<feat>/`
@@ -174,7 +173,16 @@ Field rules:
 The body keeps the existing section headings from `/to-issues`. The completion record still
 appends to `## Comments` (see below) — frontmatter `status` and the `### 完成` block move together.
 
-## Handoff files — `.scratch/<feat>/handoff.md` or `docs/handoffs/YYYY-MM-DD-topic.md`
+## Handoff files — `.scratch/<feat>/handoff.md` or `.scratch/handoff.md`
+
+A handoff is a disposable bridge for half-finished work — a snapshot so the next session can pick
+up by reading one file. It is **not** a permanent record or a conversation summary; it records
+current state, key decisions, and next actions, and is overwritten in place each time (git keeps
+history). There are exactly two locations:
+
+- **Feature-scoped** → `.scratch/<feat>/handoff.md` (the rolling handoff for that feature; lives
+  next to its PRD and issues).
+- **Cross-feature** → `.scratch/handoff.md` (a single rolling file at the `.scratch/` root).
 
 ```markdown
 ---
@@ -191,15 +199,16 @@ date: 2026-06-18
 
 Field rules:
 
-- **feature** — the feature slug when the handoff belongs to one feature; in that case the file
-  lives at `.scratch/<feat>/handoff.md` (rolling — overwrite in place each time, git keeps history).
-  Use `null` for cross-feature work; that file lives at `docs/handoffs/YYYY-MM-DD-topic.md`.
+- **feature** — the feature slug when the handoff belongs to one feature (file at
+  `.scratch/<feat>/handoff.md`); `null` for cross-feature work (file at `.scratch/handoff.md`).
 - **git_base** — HEAD's short hash at write time. `/resume` compares this against current HEAD and
   warns if they diverged (work happened since the handoff).
 - **status** — `active` when written; `/resume` sets it to `consumed` once the work it describes is
   finished. Only `active` handoffs are resume candidates.
 
-Whenever a handoff is written or updated, also rewrite `docs/handoffs/LATEST.md` (see below).
+A handoff carries no commit/submit step. When the work finishes, a human makes the final commit, or
+`/ship` orchestrates commits as part of its run — the handoff's job is only to capture state for
+the next session, never to drive the submit.
 
 ## PRD files — `.scratch/<feat>/PRD.md` / `PRD-vN.md`
 
@@ -272,20 +281,6 @@ generated: 2026-06-18
 `archived` counts files under `issues/archive/`. The active columns count only `issues/*.md`
 (top level), so the table reflects the live working set, not history.
 
-## Handoff pointer — `docs/handoffs/LATEST.md` (generated, not authored)
-
-A one-line pointer so `/resume` and the user never have to guess which handoff is current.
-Rewritten every time any handoff is written.
-
-```markdown
----
-type: handoff-pointer
-updated: 2026-06-18
----
-
-最近一份 handoff: `.scratch/balance/handoff.md` (feature: balance, status: active)
-```
-
 ## Directory layout (canonical)
 
 ```
@@ -294,12 +289,10 @@ repo/
 ├── CODEBASE.md                          ← structural map (generated by /zoom-out)
 ├── docs/
 │   ├── adr/NNNN-slug.md
-│   ├── handoffs/
-│   │   ├── LATEST.md                 ← pointer (generated)
-│   │   └── YYYY-MM-DD-topic.md       ← cross-feature handoffs only
 │   └── agents/                       ← hys-setup output
 └── .scratch/
     ├── INDEX.md                      ← roster (generated)
+    ├── handoff.md                    ← cross-feature rolling handoff
     └── <feat>/
         ├── PRD.md / PRD-vN.md
         ├── SUMMARY.md                ← generated
