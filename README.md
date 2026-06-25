@@ -134,8 +134,7 @@ pwsh -NoProfile -File install.ps1 -Force                       # 跳过备份直
    │  ├─ 同波次各自 git worktree 并行跑，跑完过两阶段 review 再 merge │
    │  ├─ ready-for-agent 自动跑完，ready-for-human 汇成人工清单     │
    │  └─ done 攒够 → 提示 /tidy；context 紧 → 自动 /handoff         │
-   │  · 三种跑法：/ship（会话内）· /ship-wf（后台编排 workflow）    │
-   │             · /loop ship（跨 context 自驱）                    │
+   │  · 两种跑法：/ship（会话内）· /ship-wf（后台编排 workflow）    │
    └────────────────────────────┬─────────────────────────────────┘
                                 ↓
    ┌──────────────────────────────────────────────────────────────┐
@@ -187,7 +186,7 @@ rg '^status: ready-for-human' -g '**/issues/*.md' .scratch    # 我亲自做的
 
 ## 自动化阶梯（手动 → 全自动，全保留）
 
-同一批 `ready-for-agent` issue、同一道验证门，从全程手动到无人值守有五个层级。按"量有多大、你想盯多紧"挑，没有哪个取代哪个：
+同一批 `ready-for-agent` issue、同一道验证门，从全程手动到无人值守有四个层级。按"量有多大、你想盯多紧"挑，没有哪个取代哪个：
 
 | 层级 | 命令 | 形态 | 何时用 |
 |---|---|---|---|
@@ -195,12 +194,11 @@ rg '^status: ready-for-human' -g '**/issues/*.md' .scratch    # 我亲自做的
 | 串行排空 | `/tdd`（裸跑）/ `/tdd <feat>` | 按依赖顺序**串行**跑完所有 ready，无 worktree、无并行、无 tidy | 少量收尾，想在本会话逐条看着排空 |
 | 会话内编排 | `/ship <feat>` | 分波、**各自 worktree 并行**、两阶段 review 后串行 merge-back、自动 tidy | 一两个 wave 的量、想盯着、随时打断；再大就上 `/ship-wf`（占主 context） |
 | 后台编排 | `/ship-wf` | 同 `/ship`，后台 workflow、结构化 agent、不占主 context | 一次无人值守把一个 feature 跑完 |
-| 跨 context 自驱 | `/loop ship` | 每轮自唤醒、读盘续命，串行但抗 context 爆 | 跨多个 context 窗口的大 epic |
 
 **两条易混的线：**
 
 - **裸 `/tdd` vs `/ship`** —— 都排空 backlog。裸 `/tdd` 是"笨而清晰的串行"（无并行、无收拢、无清理，全在当前会话）；`/ship` 是"聪明的编排"（worktree 并行 + 两阶段 review + merge-back + 自动 tidy）。同样的 issue、同样的 build+测试门；`/ship` 在 merge 前多一道 fresh subagent 的两阶段 review（spec 合规 + 代码质量）。
-- **`/ship` vs `/ship-wf` vs `/loop ship`** —— 同一套编排逻辑的三种运行时：会话内 skill（看得见、可打断）、后台 workflow（不占主 context）、自驱（跨 context 续命）。`/ship-wf` 是把 `.claude/workflows/ship-wf.js` 自动注册成的原生动态命令（直接敲 `/ship-wf`，不是 `/workflow ship-wf`；`/workflows` 复数是浏览运行记录）。命名 `ship-wf` 是为了不和 `/ship` skill 撞车。
+- **`/ship` vs `/ship-wf`** —— 同一套编排逻辑的两种运行时：会话内 skill（看得见、可打断）、后台 workflow（不占主 context）。`/ship-wf` 是把 `.claude/workflows/ship-wf.js` 自动注册成的原生动态命令（直接敲 `/ship-wf`，不是 `/workflow ship-wf`；`/workflows` 复数是浏览运行记录）。命名 `ship-wf` 是为了不和 `/ship` skill 撞车。
 
 **典型节奏：** 周一上午搜 `^status: ready-for-human` 挑一条手动做；周五下午 `/ship <feat>`（或量特别大时 `/ship-wf`）然后下班；少量零散收尾直接裸 `/tdd` 串行排空。
 
