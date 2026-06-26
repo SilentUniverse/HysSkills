@@ -243,11 +243,11 @@ rg '^status: ready-for-human' -g '**/issues/*.md' .scratch    # 我亲自做的
 _Avoid_: Wallet, balance-holder
 ```
 
-概念叫什么名字、住在哪个文件,**不往 CONTEXT.md 里存**:名字一致(`Account` 类就叫 `Account`)时 `rg Account` 一下就到,存了反而是会过期的副本。真正 grep 不到的——名字背叛概念(`订单入账` 藏在 `FooBarHandler`)、不变量背后的地雷(冻结状态禁止 debit,否则静默扣款)——归 `CODEBASE.md` 当"坑"记:
+概念叫什么名字、住在哪个文件,**不往 CONTEXT.md 里存**:名字一致(`Account` 类就叫 `Account`)时 `rg Account` 一下就到,存了反而是会过期的副本。真正 grep 不到的——名字背叛概念(`订单入账` 藏在 `FooBarHandler`)、违反会出错的约束(冻结状态禁止 debit,否则静默扣款)——归 `CODEBASE.md` 当约束（invariant）记:
 
 ```markdown
 ## Account <!-- git_base: 7af387c -->
-- **坑**: 余额扣减必须查 frozen 标志,直接 debit 会绕过冻结(`account.py` 里 `_debit` 是私有的,真入口是 `withdraw`)
+- 余额扣减必须查 frozen 标志,直接 debit 会绕过冻结(`account.py` 里 `_debit` 是私有的,真入口是 `withdraw`)
 ```
 
 这两份的回报随项目增大而指数增长——后面 skill 不再从根目录扫代码。
@@ -352,10 +352,10 @@ A、B 两条线都流到这里。下面按真实场景排。
 
 - **一道廉价探测当总闸**：从你这句话 + `CONTEXT.md` 锚定符号（订单/退款/余额），`rg`/`ast-grep` 一下有多少现有引用。按半径分三档，**小改动一眼带过、不被拖慢**：
   - 零引用 = 真新增 → 直接拆。
-  - 几处引用、单模块、无已知地雷 = 小半径 → 一行记一下（"碰 `Order.total`，2 个调用方，无地雷"）就拆，**不出报告、不开 subagent**。
-  - 多处 / 跨模块 / 命中已知地雷区 = 真耦合 → 才出下面那份完整报告。拿不准就往大了算（漏耦合是回归，多看一眼很便宜）。
+  - 几处引用、单模块、无已知 invariant = 小半径 → 一行记一下（"碰 `Order.total`，2 个调用方，无 invariant"）就拆，**不出报告、不开 subagent**。
+  - 多处 / 跨模块 / 命中已知 invariant 区 = 真耦合 → 才出下面那份完整报告。拿不准就往大了算（漏耦合是回归，多看一眼很便宜）。
 - **真耦合才出影响面报告**给你过目：受影响模块、可能回归的现有行为、**哪些既有测试的预期要改**（耦合改动常常是*改*某个既有测试，不只是加新测试）。
-- 探出 grep 看不见的地雷（"对账处假设金额恒正"这种）→ 它会问要不要**落盘进 `CODEBASE.md`**。落了之后下次再碰这块开机自动加载、不用重推——**同一区域耦合改动做得越多，后续探测越省**。
+- 探出 grep 看不见的 invariant（"对账处假设金额恒正"这种）→ 它会问要不要**落盘进 `CODEBASE.md`**。落了之后下次再碰这块开机自动加载、不用重推——**同一区域耦合改动做得越多，后续探测越省**。
 - 你**只敲一次** `/to-issues`，探测是它内部的一步，不用先手动 `/zoom-out` 再来拆。
 
 > **静态查得准不准看语言**：强类型（TS）靠类型检查器，影响面查得近乎完整；动态语言（Python）静态查不全，得叠运行时手段，报告会标"动态部分可能有遗漏"。按语言特化的具体命令见 [`engineering/to-issues/impact-detection.md`](engineering/to-issues/impact-detection.md)，并固化进项目 `docs/agents/domain.md`。
@@ -393,7 +393,7 @@ A、B 两条线都流到这里。下面按真实场景排。
 | 文件 | 记什么 | 触发 |
 |---|---|---|
 | `CONTEXT.md` | 术语 / 概念定义（**是什么**，纯术语表，不带代码路径） | grill 时术语一确定就**立即**写，不攒着 |
-| `CODEBASE.md` | grep 拿不到的**操作性理解**（地雷、下手处 seam、跨模块综合判断），**不含**概念→位置映射 | `/zoom-out` 探完后按需落盘，按 section 刷新 |
+| `CODEBASE.md` | grep 拿不到的**操作性理解**（invariant、下手处 seam、跨模块综合判断），**不含**概念→位置映射 | `/zoom-out` 探完后按需落盘，按 section 刷新 |
 | `docs/adr/` | 架构硬决策（**为什么这么选**，少数不可逆的） | 满足上面三条件时**提议**写 |
 
 `docs/adr/` 目录懒创建——第一次真要写 ADR 时才建，不会预先生成。**被新 ADR 取代的旧 ADR 不可改**，只标 superseded，新决策由新 ADR 承载（和 issue `done` 不可改同一套规矩）。
@@ -449,11 +449,11 @@ Claude Code 用 prompt caching：**对话前缀稳定不变的内容不重复算
 | 法子 | 一次投入 | 长期收益 |
 |---|---|---|
 | 写好 `CONTEXT.md`（纯术语表） | 跑 `/grill-with-docs` 谈术语 | agent 用对概念名，输出/检索不跑偏；配合 CODEBASE 直达代码 |
-| 落盘 `CODEBASE.md`（坑 + 下手处 seam） | `/zoom-out` 探完后选择落盘对应模块 | **新 session 开机自动加载，不再重读代码找位置**；按 section 带 `git_base`，代码漂移了只刷那一块 |
+| 落盘 `CODEBASE.md`（invariant + 下手处 seam） | `/zoom-out` 探完后选择落盘对应模块 | **新 session 开机自动加载，不再重读代码找位置**；按 section 带 `git_base`，代码漂移了只刷那一块 |
 | PRD 写明涉及模块 | `/to-prd` 时显式说"涉及 `src/services/balance/`" | `/to-issues`、`/tdd` 接力时直接读 PRD 里写好的，不再扫 |
 | `/zoom-out` 临时看懂单模块 | `/zoom-out <path>` 即用即走（默认只读） | 快速理解一块陌生代码；值得长期保留就让它落盘进 `CODEBASE.md` |
 
-最简单的一条：**别说"做一下 X 功能"，直接说"在 `<file>` 实现 X，按 CONTEXT.md 里的 Y 概念扩展"**。给 agent 越具体的入手点，它探索范围越小。`CODEBASE.md` 的"坑/下手处"价值最大处就在这——直接告诉 agent 该整文件读哪个 seam，跳过盲目 grep 摸索。
+最简单的一条：**别说"做一下 X 功能"，直接说"在 `<file>` 实现 X，按 CONTEXT.md 里的 Y 概念扩展"**。给 agent 越具体的入手点，它探索范围越小。`CODEBASE.md` 的"invariant/下手处"价值最大处就在这——直接告诉 agent 该整文件读哪个 seam，跳过盲目 grep 摸索。
 
 > **开机自动加载**：「会话开机」约定写在**全局 `~/.claude/CLAUDE.md` 模板**里（§6 文档布局表下方），每个 session 自动载入——先读 `CODEBASE.md` + `CONTEXT.md` 全文、扫 ADR 标题，并检查 `CODEBASE.md` 各 section 是否相对当前 HEAD 漂移；文件不存在就静默跳过，在没用这套约定的仓库里自动失效。`/resume` 复用同一步再叠 handoff。这才真正兑现"对项目的理解跨 session 保留"，而非绑在某次任务上随 handoff 被消费掉。（约定写在全局模板一处，**不**由 `/hys-setup` 往每个仓库重复注入——那会造一堆会漂移的副本；只有 per-repo 的单/多 context 布局留在 `docs/agents/domain.md`。）
 
@@ -466,13 +466,33 @@ Claude Code 用 prompt caching：**对话前缀稳定不变的内容不重复算
 
 ## 栈适配（极简）
 
-skill 本身栈无关。项目级把这三件事固化到自己的 `docs/agents/domain.md`：
+skill 本身栈无关。项目级把这几件事固化到自己的 `docs/agents/domain.md`：
 
 - **测试发现规则**：pytest.ini / `package.json` scripts / `build.gradle` 之类
 - **常用命令**：跑测试 / 跑 lint / 启动 dev server / 部署
 - **栈特定环境**：Android ADB 食谱、Web e2e 配置等
+- **影响面探测命令**：to-issues 真耦合档**先用这里记的确定性工具**（runtime / 编译器 / coverage）覆盖动态耦合，subagent 只补它们看不到的语义盲区——agent 慢时这步省掉大量 subagent 读取
 
 固化一次后所有 skill 引用同一套词汇。**仓库级 README 不展开栈细节**——那会让仓库越用越臃肿。
+
+### Python 影响面探测（示范）
+
+Python 动态，静态工具查不全动态派发，**runtime 工具更可信**。推荐装 `pytest-testmon`——它记住每个测试实际跑过哪些代码行，改动后直接揭示动态耦合（实际跑过的路径），替代 subagent 盲读：
+
+```bash
+pip install pytest-testmon
+```
+
+装完把命令写进项目的 `docs/agents/domain.md`：
+
+```markdown
+## 影响面探测命令（impact detection）
+- 受影响代码：`pyright --outputjson` + `rg '\bSYM\b'`（动态兜底）
+- 受影响测试：`pytest --testmon`
+- import 图：`grimp`
+```
+
+其他语言（TS / Go / Ruby…）的工具表见 [`engineering/to-issues/impact-detection.md`](engineering/to-issues/impact-detection.md)，按项目语言选配。
 
 ### ADB 速查（Android 项目）
 

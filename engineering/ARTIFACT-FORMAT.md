@@ -58,12 +58,12 @@ different lifespans:
 | File | Answers | Lifespan |
 |---|---|---|
 | `CONTEXT.md` | what a concept is called (glossary, nothing else) | edited when the language changes |
-| `CODEBASE.md` | the operational understanding grep can't give: landmines, seams, synthesis, why | regenerated as code drifts |
+| `CODEBASE.md` | the operational understanding grep can't give: invariants, seams, synthesis, why | regenerated as code drifts |
 | `docs/adr/` | the few hard, irreversible decisions not to re-litigate | immutable once written; deliberately rare |
 
 The mid-weight "why is it shaped this way" reasoning that isn't worth an ADR lives **inline in
 `CODEBASE.md`**, next to the structure it explains — that's the gap CODEBASE fills, so don't force
-such reasoning into an ADR. (`CONTEXT.md` stays a pure glossary; concept→code and landmines are
+such reasoning into an ADR. (`CONTEXT.md` stays a pure glossary; concept→code and invariants are
 covered by the "can't rg it" field rule below.)
 
 ```markdown
@@ -77,14 +77,18 @@ generated: 2026-06-24
 <one-paragraph orientation: the shape of the system in CONTEXT.md vocabulary — the synthesis a
 fresh agent couldn't grep, not a directory listing>
 
+> Each section records invariants grep can't give — ordering constraints, hidden assumptions,
+> non-obvious seams (the real entry to change), mid-weight why. Locations are grep's job, not here.
+
 ## <Module / area name> <!-- git_base: 7af387c -->
 <!-- Only lines that survive the "can't rg it" test. Omit any line you have nothing non-obvious to
      say for — a 2-line section is normal and good. Where a path helps, link it; don't transcribe.
      Concept→code is NOT stored: matching names are grep's job; a name that betrays its concept
-     (订单入账 hidden in FooBarHandler) is a landmine — record it as 坑, below. -->
-- **坑**: <landmine a reader/grep wouldn't catch — ordering constraints, "looks like X but is Y", or a code name that betrays its concept so grep on the term fails>
-- **下手处**: <the real seam to change this, if non-obvious>
-- **为什么**: <mid-weight rationale, only if non-obvious and not an ADR>
+     (订单入账 hidden in FooBarHandler) is an invariant — record it as a line below. -->
+- <an invariant a reader/grep wouldn't catch — ordering constraint, "looks like X but is Y", or a
+  code name that betrays its concept so grep on the term fails>
+- <the real seam to change this, if non-obvious>
+- <mid-weight rationale, only if non-obvious and not an ADR>
 
 ## <next module / area> <!-- git_base: 7af387c -->
 ...
@@ -102,8 +106,8 @@ Field & structure rules:
   only if a fresh agent *couldn't* rebuild it with a couple of `rg`/`glob` queries. Locations,
   exports, caller lists, import graphs are grep's job — persisting them creates a stale second copy.
   Same for concept→code: when the code name matches the term, grep finds it; when the name *betrays*
-  the term (so grep fails), that's a landmine → record it as a **坑**. What belongs here is the
-  *operational* understanding grep can't give: landmines, seam judgment, cross-module synthesis,
+  the term (so grep fails), that's an invariant → record it as a line. What belongs here is the
+  *operational* understanding grep can't give: invariants, seam judgment, cross-module synthesis,
   mid-weight why. (Keeps `CONTEXT.md` a pure glossary with no code paths.) Omit any template line you
   have nothing non-trivial to fill it with.
 - Use **CONTEXT.md domain vocabulary** for concepts and **codebase-design vocabulary** (module,
@@ -111,7 +115,7 @@ Field & structure rules:
 - Decisions → ADR; vocabulary → CONTEXT.md; transient task focus and speculation → nowhere.
 - **Budget — it's loaded every session, so keep it tiny.** The "can't rg it" rule already does most
   of the work: once locations, exports, and caller lists are gone, a section is usually just 2–4
-  lines (a bridge, a landmine or two, maybe a why). Treat **~5 lines as a soft ceiling**, not a quota
+  lines (a bridge, an invariant or two, maybe a why). Treat **~5 lines as a soft ceiling**, not a quota
   to fill — a one-line section, or no section at all for an area with nothing non-obvious to say, is
   the correct outcome. Never pad to look thorough.
 - **Big repos split, they don't bloat.** When there are more areas than fit a screen, the root

@@ -9,9 +9,9 @@ project's orientation layer **before** exploring code. This is the cheap way to 
 source every session. Load in tiers — not everything is worth the same context cost:
 
 - **`CODEBASE.md`** (repo root) — read **in full**. The structural map — but only the *operational*
-  understanding the code can't hand you (landmines, seam judgment, cross-module synthesis), kept tiny
+  understanding the code can't hand you (invariants, seam judgment, cross-module synthesis), kept tiny
   on purpose, so "in full" is cheap. Concept→code location is *not* stored here — matching names are
-  grep's job; a code name that betrays its concept is a landmine recorded as a 坑. **Big repos**: the
+  grep's job; a code name that betrays its concept is an invariant — record it in CODEBASE.md. **Big repos**: the
   root file is just a roster (one line per area → a per-area `src/<area>/CODEBASE.md`). Read the
   roster in full; pull an area's file on demand when you work there, not upfront.
 - **`CONTEXT.md`** (repo root) — read **in full**. The glossary (terms only, no code paths). It's

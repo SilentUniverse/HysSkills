@@ -50,13 +50,13 @@ CODEBASE.md so the next session skips re-exploring?"_ Write only on a yes (or `/
 > **The "can't rg it" test** — persist a fact only if a fresh agent *couldn't* rebuild it with a
 > couple of `rg`/`glob` queries. Locations, exports, caller lists, import graphs fail the test (grep
 > finds them; a stored copy just goes stale) — drop them. What passes is the operational
-> understanding the code can't hand you: landmines, seam judgment, cross-module synthesis, mid-weight
+> understanding the code can't hand you: invariants, seam judgment, cross-module synthesis, mid-weight
 > why. Decisions → ADR, vocabulary → CONTEXT.md.
 
 ## Maintaining existing sections
 
 Re-running on an area already mapped? Diff each section's `git_base` against HEAD:
 
-- **Code gone** (file/symbol deleted) → **delete the section** — the landmine died with the code.
+- **Code gone** (file/symbol deleted) → **delete the section**.
 - **Code drifted** → refresh + re-stamp `git_base`.
-- **Duplicate** (same landmine found twice) → merge.
+- **Duplicate** (same invariant found twice) → merge.

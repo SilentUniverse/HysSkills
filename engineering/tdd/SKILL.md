@@ -141,7 +141,7 @@ After all tests pass, look for [refactor candidates](refactoring.md):
 - [ ] Deepen modules (move complexity behind simple interfaces)
 - [ ] Apply SOLID principles where natural
 - [ ] Consider what new code reveals about existing code
-- [ ] Unexpected red exposed a `rg`-invisible landmine (hidden invariant/coupling)? Offer to persist it to `CODEBASE.md` — can't-rg gate per `/zoom-out`
+- [ ] Unexpected red exposed a `rg`-invisible invariant (hidden constraint/coupling)? Offer to persist it to `CODEBASE.md` — can't-rg gate per `/zoom-out`
 - [ ] Run tests after each refactor step
 
 **Never refactor while RED.** Get to GREEN first.

@@ -68,8 +68,8 @@ guess whether a change is "big" or "coupled" — measure it. Anchor the symbols 
 | Probe result | Do this |
 |---|---|
 | **No references** — genuinely new | Skip to step 3 and slice. |
-| **A few references, one module, no known 坑** — small blast radius | Note it in one line ("touches `Order.total`, 2 callers, no landmine") and slice. **No report, no subagent** — a tiny change finishes here. |
-| **Many references / multiple modules / a known-landmine area** — real coupling | Produce the impact report below before slicing. |
+| **A few references, one module, no known invariant** — small blast radius | Note it in one line ("touches `Order.total`, 2 callers, no invariant") and slice. **No report, no subagent** — a tiny change finishes here. |
+| **Many references / multiple modules / a known-invariant area** — real coupling | Produce the impact report below before slicing. |
 
 When unsure which tier, round **up** — a missed coupling is a regression; an extra glance is cheap.
 
@@ -80,14 +80,14 @@ re-run — a checkpoint you show the user, not a silent decision:
    cover them. Machine-determinable — query it, don't eyeball it. Per-language commands + their
    confidence: [impact-detection.md](./impact-detection.md) (also in `docs/agents/domain.md`).
 2. **Semantic coupling** — behaviour the change might break that no import edge shows (invariants
-   like "amount ≥ 0", ordering constraints). Start from `CODEBASE.md` 坑 if any. Beyond one module,
-   **dispatch one Explore subagent per affected area in parallel** so the reading burns subagent
-   context, not this session's.
+   like "amount ≥ 0", ordering constraints). **Deterministic tools first**: run the runtime /
+   coverage commands recorded in `docs/agents/domain.md` (they catch dynamic coupling) and pull
+   from `CODEBASE.md`'s invariants. A subagent only fills what those miss — greppable-invisible assumptions —
+   one Explore per unresolved area, not a full re-read.
 3. **Existing tests whose expectations this change alters** — coupled changes often *edit* a test's
    expectation, not just add tests; flag those so the slices carry the right AC.
-4. If a grep-invisible landmine surfaced, **offer to persist it to `CODEBASE.md`** — the next
-   coupled change here then reuses it instead of re-deriving it (so an area gets cheaper to touch
-   the more you work it).
+4. If a grep-invisible invariant surfaced, **offer to persist it to `CODEBASE.md`** — the next
+   coupled change here reuses it instead of re-deriving it.
 
 Use the domain glossary; respect ADRs in the area. On a dynamic language (Python, untyped JS) static
 results are a floor, not the ceiling — say so rather than implying the impact list is complete.
