@@ -5,16 +5,18 @@ might break*. This is the per-language playbook for that.
 
 **Read this only for the third tier** — `to-issues` step 2 gates impact work on a cheap reference
 probe and scales the response to the blast radius: a new change or a small-radius one (a few
-callers, one module, no known landmine) is handled inline and never reaches this file. Only a real
-coupled change — many references, multiple modules, or a landmine area — needs the playbook below.
+callers, one module, no known invariant) is handled inline and never reaches this file. Only a real
+coupled change — many references, multiple modules, or an invariant area — needs the playbook below.
 The slicing skill itself stays stack-agnostic.
 
 ## The one principle
 
-**The stronger the type system, the more you can trust static analysis; the weaker it is, the more
-you must add runtime observation + subagent reading.** TypeScript is near-whitebox — the checker
+**Deterministic tools first, subagent reading last.** The stronger the type system, the more static
+analysis covers; the weaker it is, the more you lean on **runtime** observation (coverage / test
+selectors — what actually ran). Either way a subagent only fills what those tools miss —
+greppable-invisible assumptions — it never replaces them. TypeScript is near-whitebox — the checker
 resolves which `save()` you mean. Python is dynamic — `getattr`, `**kwargs`, DI, registries, and
-fixtures make callers invisible to static tools, so static results are a floor, never the ceiling.
+fixtures make callers invisible to static tools, so static results are a lower bound, not complete.
 
 Two kinds of impact, very different confidence:
 
@@ -22,13 +24,13 @@ Two kinds of impact, very different confidence:
   Machine-determinable. Query it, don't let the agent guess.
 - **Semantic / behavioural coupling** — "refund makes the amount negative, but reconciliation
   *assumes* amount ≥ 0." No import edge, ungreppable. Only reading + reasoning finds it. This is
-  exactly what `CODEBASE.md`'s **坑** is for — persist it so the next run reuses it.
+  exactly what `CODEBASE.md`'s **invariants** are for — persist them so the next run reuses them.
 
 ## What gets reused on the second run
 
 - **Static reference points** — NOT stored (re-grep each time; cheap and always current — a stale
   call graph is worse than none). The `CODEBASE.md` "can't rg it" rule.
-- **Semantic 坑 (the expensive part)** — persist to `CODEBASE.md` so it loads at session start and
+- **Semantic invariants (the expensive part)** — persist to `CODEBASE.md` so they load at session start and
   the next coupled change in this area skips re-deriving it. So coupled work in an area gets
   *faster* the more you do — but only if the run writes its findings back. Always offer to.
 
