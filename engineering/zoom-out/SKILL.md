@@ -52,3 +52,11 @@ CODEBASE.md so the next session skips re-exploring?"_ Write only on a yes (or `/
 > finds them; a stored copy just goes stale) — drop them. What passes is the operational
 > understanding the code can't hand you: landmines, seam judgment, cross-module synthesis, mid-weight
 > why. Decisions → ADR, vocabulary → CONTEXT.md.
+
+## Maintaining existing sections
+
+Re-running on an area already mapped? Diff each section's `git_base` against HEAD:
+
+- **Code gone** (file/symbol deleted) → **delete the section** — the landmine died with the code.
+- **Code drifted** → refresh + re-stamp `git_base`.
+- **Duplicate** (same landmine found twice) → merge.
