@@ -56,6 +56,8 @@ For each AC in the issue, search the project's test files for existing coverage.
 
 ## Completion record
 
+**Issue-based runs only.** Interview mode (no issue) writes none — run `/to-issues` afterward and mark the issue `done`.
+
 **Before marking done** — glance over `git diff`: every change should trace to this issue's AC. Revert what doesn't; if something out-of-scope is genuinely required, say why first.
 
 When all AC pass — and for `ready-for-human`, hands-on verification is confirmed — set the frontmatter `status:` to `done` and append to `## Comments`:
