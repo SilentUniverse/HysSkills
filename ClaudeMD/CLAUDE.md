@@ -12,6 +12,7 @@ Sections ending in `→` point to `~/.claude/references/`. Those files are **not
 
 ## 2. Think Before Coding
 
+- First-principles thinking: reason from fundamentals, not analogy.
 - State assumptions explicitly. If uncertain, ask.
 - Multiple interpretations? Present them, don't pick silently.
 - Simpler approach exists? Say so. Push back when warranted.
@@ -41,6 +42,7 @@ Security, validation, accessibility are never on the chopping block.
 
 Transform tasks into verifiable goals. Loop until verified.
 - Multi-step: state plan as `Step → verify: check` lines.
+- Adversarial review: attack your own work before declaring done.
 
 ## 6. Document Layout
 
@@ -66,7 +68,11 @@ Transform tasks into verifiable goals. Loop until verified.
 
 → Full mapping & details: `~/.claude/references/cli-tools.md`
 
-## 8. Run to Completion
+## 8. Text Encoding (Windows)
+
+Windows defaults to GBK (cp936). All text I/O must explicitly use UTF-8 — never rely on the system default.
+
+## 9. Run to Completion
 
 Skills iterating over work items: finish ALL items in one pass.
 - No pausing to summarize, no "here's what I've done so far" checkpoints, no "shall I continue?" between items.
@@ -74,15 +80,9 @@ Skills iterating over work items: finish ALL items in one pass.
 - If an item fails or blocks: mark it, move on, include it in the final summary. Don't stop to negotiate.
 - Autonomy until done.
 
-## 9. Parallelize with Subagents
+## 10. Parallelize with Subagents
 
 Default to subagents for work that fans out, to keep the main context clean and cut wait time.
 - **Parallelize**: independent file searches/research (dispatch one `Explore` agent each), unrelated module edits (one `general-purpose` agent each), any investigate-only task (grep, read docs).
 - **Don't**: single-file or small edits, and steps that depend on a prior result's output.
 - **Prompt well**: the subagent can't see this conversation — give it the context it needs, the exact output format/scope you want, and whether it's read-only research or allowed to write.
-
-## 10. Token Budget
-
-- **Effort is the primary knob** — adaptive models (Opus 4.7/4.8, Fable 5) ignore `MAX_THINKING_TOKENS`. Set `effortLevel: high` in settings.json; do NOT use the `CLAUDE_CODE_EFFORT_LEVEL` env var — it overrides per-agent `effort` routing in workflows.
-- **Model routing**: `haiku` mechanical, `sonnet` the ~80% middle, `opus` architecture / hard debug / final review. Set per-agent `model`/`effort` in workflows. **Turn count beats unit price.**
-- **Don't set** `MAX_THINKING_TOKENS` or `CLAUDE_CODE_SUBAGENT_MODEL` — inert on adaptive models / flattens per-agent routing. On a 200k model only, `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=60` compacts earlier.
